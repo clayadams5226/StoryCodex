@@ -1,46 +1,32 @@
 body {
-    font-family: Arial, sans-serif;
-    width: 300px;
-    padding: 10px;
-  }
-  
-  h1, h2 {
-    font-size: 18px;
-    margin: 0;
-    padding: 10px 0;
-  }
-  
-  form {
-    display: flex;
-    flex-direction: column;
-  }
-  
-  input, textarea, button, select {
-    margin: 5px 0;
-    padding: 10px;
-  }
-  
-  textarea {
-    resize: none;
-  }
-  
-  .hidden {
-    display: none;
-  }
-  
-  #books-list, #characters-list {
-    list-style-type: none;
-    padding: 0;
-  }
-  
-  #books-list li, #characters-list li {
-    margin: 5px 0;
-    padding: 5px;
-    background-color: #f1f1f1;
-    cursor: pointer;
-  }
-  
-  button {
-    margin-bottom: 10px;
-  }
-  
+  width: 300px;
+  font-family: Arial, sans-serif;
+}
+
+ul {
+  list-style-type: none;
+  padding: 0;
+}
+
+li {
+  cursor: pointer;
+  padding: 5px;
+  margin: 5px 0;
+  background-color: #f0f0f0;
+}
+
+li:hover {
+  background-color: #e0e0e0;
+}
+
+input[type="text"] {
+  width: 100%;
+  padding: 5px;
+  margin: 5px 0;
+}
+
+button {
+  width: 100%;
+  padding: 5px;
+  margin: 5px 0;
+}
