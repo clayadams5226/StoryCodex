@@ -3,8 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Writer's Companion</title>
+    <title>Story Codex</title>
     <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="vis.min.css">
+    <script src="vis.min.js"></script>
 </head>
 <body>
     <div id="bookList">
@@ -16,7 +18,7 @@
 
     <div id="bookDetails" style="display: none;">
         <h2 id="bookTitle"></h2>
-        <button id="backToBooks">Back to Books</button>
+        <button id="backToBooks" class="backToBooks">Back to Books</button>
 
         <div id="charactersSection">
             <h3>Characters</h3>
@@ -42,6 +44,9 @@
         <div id="tagsSection">
             <h3>Tags</h3>
             <div id="tags"></div>
+            <select id="tagSelect" class="tagSelect">
+                <option value="">Select a tag or type a new one</option>
+            </select>
             <input type="text" id="newTagName" placeholder="New tag">
             <button id="addTag">Add Tag</button>
         </div>
@@ -53,6 +58,7 @@
             <input type="text" id="character2" placeholder="Character 2">
             <input type="text" id="relationshipType" placeholder="Relationship type">
             <button id="addRelationship">Add Relationship</button>
+            <button id="viewRelationshipGraph">View Relationship Graph</button>
         </div>
 
         <div id="notesSection">
@@ -61,6 +67,11 @@
             <input type="text" id="newNoteTitle" placeholder="Note title">
             <textarea id="newNoteContent" placeholder="Note content"></textarea>
             <button id="addNote">Add Note</button>
+        </div>
+
+        <div id="tagsOverviewSection">
+            <h3>All Tags</h3>
+            <div id="allTags"></div>
         </div>
     </div>
 
@@ -75,12 +86,15 @@
         <ul id="characterRelationships"></ul>
         <h3>Tags</h3>
         <div id="characterTags"></div>
+        <select id="characterTagSelect" class="tagSelect">
+            <option value="">Select a tag or type a new one</option>
+        </select>
         <input type="text" id="characterTagInput" placeholder="Add tag">
         <button id="addTagToCharacter">Add Tag</button>
         <h3>Notes</h3>
         <ul id="characterNotes"></ul>
         <button id="saveCharacter">Save Character</button>
-        <button id="backToBook">Back to Book</button>
+        <button id="backToBook" class="backToBook">Back to Book</button>
     </div>
 
     <div id="locationDetails" style="display: none;">
@@ -90,12 +104,15 @@
         <input type="text" id="locationImportance" placeholder="Importance to story">
         <h3>Tags</h3>
         <div id="locationTags"></div>
+        <select id="locationTagSelect" class="tagSelect">
+            <option value="">Select a tag or type a new one</option>
+        </select>
         <input type="text" id="locationTagInput" placeholder="Add tag">
         <button id="addTagToLocation">Add Tag</button>
         <h3>Notes</h3>
         <ul id="locationNotes"></ul>
         <button id="saveLocation">Save Location</button>
-        <button id="backToBookFromLocation">Back to Book</button>
+        <button id="backToBookFromLocation" class="backToBook">Back to Book</button>
     </div>
 
     <div id="plotPointDetails" style="display: none;">
@@ -106,24 +123,33 @@
         <input type="text" id="plotPointLocation" placeholder="Location">
         <h3>Tags</h3>
         <div id="plotPointTags"></div>
+        <select id="plotPointTagSelect" class="tagSelect">
+            <option value="">Select a tag or type a new one</option>
+        </select>
         <input type="text" id="plotPointTagInput" placeholder="Add tag">
         <button id="addTagToPlotPoint">Add Tag</button>
         <h3>Notes</h3>
         <ul id="plotPointNotes"></ul>
         <button id="savePlotPoint">Save Plot Point</button>
-        <button id="backToBookFromPlotPoint">Back to Book</button>
+        <button id="backToBookFromPlotPoint" class="backToBook">Back to Book</button>
     </div>
 
     <div id="noteDetails" style="display: none;">
         <h2 id="noteTitle"></h2>
         <p id="noteContent"></p>
-        <button id="backToBookFromNote">Back to Book</button>
+        <button id="backToBookFromNote" class="backToBook">Back to Book</button>
     </div>
 
     <div id="taggedItems" style="display: none;">
         <h2>Items tagged with <span id="currentTag"></span></h2>
         <ul id="taggedItemsList"></ul>
-        <button id="backToBookFromTaggedItems">Back to Book</button>
+        <button id="backToBookFromTaggedItems" class="backToBook">Back to Book</button>
+    </div>
+
+    <div id="relationshipGraph" style="display: none;">
+        <h2>Character Relationships</h2>
+        <div id="graphContainer"></div>
+        <button id="backToBookFromGraph" class="backToBook">Back to Book</button>
     </div>
 
     <script src="popup.js"></script>

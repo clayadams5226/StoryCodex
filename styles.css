@@ -1,6 +1,14 @@
 body {
-  width: 300px;
+  width: 400px;
   font-family: Arial, sans-serif;
+  margin: 0;
+  padding: 15px;
+  background-color: #f5f5f5;
+}
+
+h1, h2, h3 {
+  color: #333;
+  margin-top: 0;
 }
 
 ul {
@@ -10,23 +18,142 @@ ul {
 
 li {
   cursor: pointer;
-  padding: 5px;
+  padding: 8px 10px;
   margin: 5px 0;
-  background-color: #f0f0f0;
+  background-color: #fff;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  transition: background-color 0.3s;
 }
 
 li:hover {
-  background-color: #e0e0e0;
+  background-color: #f0f0f0;
 }
 
-input[type="text"] {
+input[type="text"], textarea, select {
   width: 100%;
-  padding: 5px;
+  padding: 8px;
   margin: 5px 0;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  box-sizing: border-box;
+}
+
+textarea {
+  height: 100px;
+  resize: vertical;
 }
 
 button {
   width: 100%;
-  padding: 5px;
+  padding: 10px;
   margin: 5px 0;
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+button:hover {
+  background-color: #45a049;
+}
+
+.tag {
+  display: inline-block;
+  background-color: #e0e0e0;
+  color: #333;
+  padding: 5px 10px;
+  margin: 3px;
+  border-radius: 15px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.tag:hover {
+  background-color: #d0d0d0;
+}
+
+#graphContainer {
+  height: 400px;
+  border: 1px solid #ddd;
+  margin-bottom: 10px;
+}
+
+#bookDetails > div,
+#characterDetails > div,
+#locationDetails > div,
+#plotPointDetails > div {
+  margin-bottom: 20px;
+  padding: 10px;
+  background-color: #fff;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+#backToBooks,
+#backToBook,
+#backToBookFromLocation,
+#backToBookFromPlotPoint,
+#backToBookFromNote,
+#backToBookFromTaggedItems,
+#backToBookFromGraph {
+  background-color: #f44336;
+}
+
+#backToBooks:hover,
+#backToBook:hover,
+#backToBookFromLocation:hover,
+#backToBookFromPlotPoint:hover,
+#backToBookFromNote:hover,
+#backToBookFromTaggedItems:hover,
+#backToBookFromGraph:hover {
+  background-color: #d32f2f;
+}
+
+#saveCharacter,
+#saveLocation,
+#savePlotPoint {
+  background-color: #2196F3;
+}
+
+#saveCharacter:hover,
+#saveLocation:hover,
+#savePlotPoint:hover {
+  background-color: #1976D2;
+}
+
+#viewRelationshipGraph {
+  background-color: #9C27B0;
+}
+
+#viewRelationshipGraph:hover {
+  background-color: #7B1FA2;
+}
+
+#tagsOverviewSection {
+  margin-top: 20px;
+}
+
+#allTags {
+  margin-top: 10px;
+}
+
+/* Scrollbar styles */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #555;
 }
