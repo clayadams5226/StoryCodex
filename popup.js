@@ -41,6 +41,12 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
     currentScreen = screenId;
+    
+    // Refresh tags when switching to book details
+    if (screenId === 'bookDetails' && currentBook) {
+        displayTags(currentBook.tags);
+    }
+    
     saveCurrentState();
 }
 
@@ -100,37 +106,37 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   function addBook(bookName) {
-      const newBook = {
-          name: bookName,
-          characters: [],
-          locations: [],
-          plotPoints: [],
-          relationships: [],
-          notes: [],
-          tags: [],
-          wordCount: 0,
-          targetWordCount: 0
-      };
-      books.push(newBook);
-      updateBooks(books);
-  }
+    const newBook = {
+        name: bookName,
+        characters: [],
+        locations: [],
+        plotPoints: [],
+        relationships: [],
+        notes: [],
+        tags: [],
+        wordCount: 0,
+        targetWordCount: 0
+    };
+    books.push(newBook);
+    updateBooks(books);
+}
 
   // Book Details Functions
   function displayBookDetails(book) {
-      const bookTitleElement = document.getElementById('bookTitle');
-      if (bookTitleElement) {
-          bookTitleElement.textContent = book.name;
-      }
-      displayCharacters(book.characters);
-      displayLocations(book.locations);
-      displayPlotPoints(book.plotPoints);
-      displayTags(book.tags);
-      displayRelationships(book.relationships);
-      displayNotes(book.notes);
-      displayWordCount(book);
-      populateTagDropdowns();
-      showScreen('bookDetails');
-  }
+    const bookTitleElement = document.getElementById('bookTitle');
+    if (bookTitleElement) {
+        bookTitleElement.textContent = book.name;
+    }
+    displayCharacters(book.characters);
+    displayLocations(book.locations);
+    displayPlotPoints(book.plotPoints);
+    displayTags(book.tags);
+    displayRelationships(book.relationships);
+    displayNotes(book.notes);
+    displayWordCount(book);
+    populateTagDropdowns();
+    showScreen('bookDetails');
+}
 
   function displayCharacters(characters) {
       const characterList = document.getElementById('characters');
@@ -172,18 +178,39 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   function displayTags(tags) {
-      const tagContainer = document.getElementById('tags');
-      if (tagContainer) {
-          tagContainer.innerHTML = '';
-          tags.forEach(tag => {
-              const div = document.createElement('div');
-              div.textContent = tag;
-              div.classList.add('tag');
-              div.addEventListener('click', () => displayTaggedItems(tag));
-              tagContainer.appendChild(div);
-          });
-      }
-  }
+    const tagContainers = [
+        document.getElementById('tags'),
+        document.getElementById('characterTags'),
+        document.getElementById('locationTags'),
+        document.getElementById('plotPointTags')
+    ];
+
+    tagContainers.forEach(container => {
+        if (container) {
+            container.innerHTML = '';
+            tags.forEach(tag => {
+                const div = document.createElement('div');
+                div.textContent = tag;
+                div.classList.add('tag');
+                div.addEventListener('click', () => displayTaggedItems(tag));
+                container.appendChild(div);
+            });
+        }
+    });
+
+    // Update the All Tags section in the book details
+    const allTagsContainer = document.getElementById('allTags');
+    if (allTagsContainer) {
+        allTagsContainer.innerHTML = '';
+        tags.forEach(tag => {
+            const div = document.createElement('div');
+            div.textContent = tag;
+            div.classList.add('tag');
+            div.addEventListener('click', () => displayTaggedItems(tag));
+            allTagsContainer.appendChild(div);
+        });
+    }
+}
 
   function displayRelationships(relationships) {
       const relationshipList = document.getElementById('relationships');
@@ -322,44 +349,44 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   function addCharacter(book, characterName) {
-      book.characters.push({
-          name: characterName,
-          nickname: '',
-          description: '',
-          scene: '',
-          type: '',
-          relationships: [],
-          notes: [],
-          tags: []
-      });
-      updateBook(book);
-      displayCharacters(book.characters);
-  }
+    book.characters.push({
+        name: characterName,
+        nickname: '',
+        description: '',
+        scene: '',
+        type: '',
+        relationships: [],
+        notes: [],
+        tags: []
+    });
+    updateBook(book);
+    displayCharacters(book.characters);
+}
 
-  function addLocation(book, locationName) {
-      book.locations.push({
-          name: locationName,
-          description: '',
-          importance: '',
-          notes: [],
-          tags: []
-      });
-      updateBook(book);
-      displayLocations(book.locations);
-  }
+function addLocation(book, locationName) {
+  book.locations.push({
+      name: locationName,
+      description: '',
+      importance: '',
+      notes: [],
+      tags: []
+  });
+  updateBook(book);
+  displayLocations(book.locations);
+}
 
-  function addPlotPoint(book, plotPointTitle) {
-      book.plotPoints.push({
-          title: plotPointTitle,
-          description: '',
-          characters: '',
-          location: '',
-          notes: [],
-          tags: []
-      });
-      updateBook(book);
-      displayPlotPoints(book.plotPoints);
-  }
+function addPlotPoint(book, plotPointTitle) {
+  book.plotPoints.push({
+      title: plotPointTitle,
+      description: '',
+      characters: '',
+      location: '',
+      notes: [],
+      tags: []
+  });
+  updateBook(book);
+  displayPlotPoints(book.plotPoints);
+}
 
   function addRelationship(book, character1, character2, relationshipType) {
       const relationship = { character1, character2, type: relationshipType };
@@ -514,25 +541,25 @@ function displayNotesForItem(item, itemType) {
 }
 
 function displayTaggedItems(tag) {
-    const currentTagElement = document.getElementById('currentTag');
-    const taggedItemsList = document.getElementById('taggedItemsList');
-    if (currentTagElement) currentTagElement.textContent = tag;
-    if (taggedItemsList) {
-        taggedItemsList.innerHTML = '';
+  const currentTagElement = document.getElementById('currentTag');
+  const taggedItemsList = document.getElementById('taggedItemsList');
+  if (currentTagElement) currentTagElement.textContent = tag;
+  if (taggedItemsList) {
+      taggedItemsList.innerHTML = '';
 
-        const addTaggedItem = (item, type) => {
-            const li = document.createElement('li');
-            li.textContent = `${type}: ${item.name || item.title}`;
-            li.addEventListener('click', () => showItemDetails(type, item));
-            taggedItemsList.appendChild(li);
-        };
+      const addTaggedItem = (item, type) => {
+          const li = document.createElement('li');
+          li.textContent = `${type}: ${item.name || item.title}`;
+          li.addEventListener('click', () => showItemDetails(type, item));
+          taggedItemsList.appendChild(li);
+      };
 
-        currentBook.characters.filter(char => char.tags.includes(tag)).forEach(char => addTaggedItem(char, 'character'));
-        currentBook.locations.filter(loc => loc.tags.includes(tag)).forEach(loc => addTaggedItem(loc, 'location'));
-        currentBook.plotPoints.filter(plot => plot.tags.includes(tag)).forEach(plot => addTaggedItem(plot, 'plotPoint'));
-    }
+      currentBook.characters.filter(char => char.tags && char.tags.includes(tag)).forEach(char => addTaggedItem(char, 'character'));
+      currentBook.locations.filter(loc => loc.tags && loc.tags.includes(tag)).forEach(loc => addTaggedItem(loc, 'location'));
+      currentBook.plotPoints.filter(plot => plot.tags && plot.tags.includes(tag)).forEach(plot => addTaggedItem(plot, 'plotPoint'));
+  }
 
-    showScreen('taggedItems');
+  showScreen('taggedItems');
 }
 
 // Save item details
@@ -583,14 +610,22 @@ if (savePlotPointButton) {
 
 // Add tag to item
 function addTagToItem(itemType, tag) {
-    if (currentItem && currentItemType === itemType) {
-        if (!currentItem.tags) currentItem.tags = [];
-        if (!currentItem.tags.includes(tag)) {
-            currentItem.tags.push(tag);
-            updateBook(currentBook);
-            showItemDetails(itemType, currentItem);
-        }
-    }
+  if (currentItem && currentItemType === itemType) {
+      if (!currentItem.tags) currentItem.tags = [];
+      if (!currentItem.tags.includes(tag)) {
+          currentItem.tags.push(tag);
+          
+          // Always add the tag to the book's overall tag list if it's not already there
+          if (!currentBook.tags.includes(tag)) {
+              currentBook.tags.push(tag);
+          }
+          
+          updateBook(currentBook);
+          showItemDetails(itemType, currentItem);
+          populateTagDropdowns(); // Refresh tag dropdowns
+          displayTags(currentBook.tags); // Refresh tags display on all screens
+      }
+  }
 }
 
 const addTagToCharacterButton = document.getElementById('addTagToCharacter');
@@ -731,18 +766,20 @@ if (updateWordCountButton) {
 
 // Populate tag dropdowns
 function populateTagDropdowns() {
-    const tagSelects = document.querySelectorAll('.tagSelect');
-    const allTags = currentBook ? currentBook.tags : [];
-    
-    tagSelects.forEach(select => {
-        select.innerHTML = '<option value="">Select a tag or type a new one</option>';
-        allTags.forEach(tag => {
-            const option = document.createElement('option');
-            option.value = tag;
-            option.textContent = tag;
-            select.appendChild(option);
-        });
-    });
+  const tagSelects = document.querySelectorAll('.tagSelect');
+  const allTags = currentBook ? currentBook.tags : [];
+  
+  tagSelects.forEach(select => {
+      const currentValue = select.value; // Store the current value
+      select.innerHTML = '<option value="">Select a tag or type a new one</option>';
+      allTags.forEach(tag => {
+          const option = document.createElement('option');
+          option.value = tag;
+          option.textContent = tag;
+          select.appendChild(option);
+      });
+      select.value = currentValue; // Restore the previous value if it still exists
+  });
 }
 
 // Display relationship graph
