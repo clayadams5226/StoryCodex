@@ -53,11 +53,25 @@
 
         <div id="relationshipsSection">
             <h3>Relationships</h3>
-            <ul id="relationships"></ul>
-            <input type="text" id="character1" placeholder="Character 1">
-            <input type="text" id="character2" placeholder="Character 2">
-            <input type="text" id="relationshipType" placeholder="Relationship type">
+            <select id="character1">
+                <option value="">Select character 1</option>
+            </select>
+            <select id="character2">
+                <option value="">Select character 2</option>
+            </select>
+            <select id="relationshipType">
+                <option value="">Select relationship type</option>
+                <option value="married">Married</option>
+                <option value="family">Family</option>
+                <option value="friend">Friend</option>
+                <option value="enemy">Enemy</option>
+                <option value="colleague">Colleague</option>
+                <option value="lover">Lover</option>
+                <option value="other">Other</option>
+            </select>
+            <input type="text" id="customRelationshipType" placeholder="Custom relationship type" style="display: none;">
             <button id="addRelationship">Add Relationship</button>
+            <ul id="relationships"></ul>
             <button id="viewRelationshipGraph">View Relationship Graph</button>
         </div>
 
@@ -72,6 +86,15 @@
         <div id="tagsOverviewSection">
             <h3>All Tags</h3>
             <div id="allTags"></div>
+        </div>
+
+        <div id="wordCountSection">
+            <h3>Word Count</h3>
+            <div id="wordCountDisplay"></div>
+            <div id="progressBar"></div>
+            <input type="number" id="newWordCount" placeholder="Update word count">
+            <input type="number" id="newTargetWordCount" placeholder="Update target word count">
+            <button id="updateWordCount">Update</button>
         </div>
     </div>
 
@@ -93,6 +116,9 @@
         <button id="addTagToCharacter">Add Tag</button>
         <h3>Notes</h3>
         <ul id="characterNotes"></ul>
+        <input type="text" id="newCharacterNoteTitle" placeholder="Note title">
+        <textarea id="newCharacterNoteContent" placeholder="Note content"></textarea>
+        <button id="addNoteToCharacter">Add Note</button>
         <button id="saveCharacter">Save Character</button>
         <button id="backToBook" class="backToBook">Back to Book</button>
     </div>
@@ -111,6 +137,9 @@
         <button id="addTagToLocation">Add Tag</button>
         <h3>Notes</h3>
         <ul id="locationNotes"></ul>
+        <input type="text" id="newLocationNoteTitle" placeholder="Note title">
+        <textarea id="newLocationNoteContent" placeholder="Note content"></textarea>
+        <button id="addNoteToLocation">Add Note</button>
         <button id="saveLocation">Save Location</button>
         <button id="backToBookFromLocation" class="backToBook">Back to Book</button>
     </div>
@@ -130,6 +159,9 @@
         <button id="addTagToPlotPoint">Add Tag</button>
         <h3>Notes</h3>
         <ul id="plotPointNotes"></ul>
+        <input type="text" id="newPlotPointNoteTitle" placeholder="Note title">
+        <textarea id="newPlotPointNoteContent" placeholder="Note content"></textarea>
+        <button id="addNoteToPlotPoint">Add Note</button>
         <button id="savePlotPoint">Save Plot Point</button>
         <button id="backToBookFromPlotPoint" class="backToBook">Back to Book</button>
     </div>

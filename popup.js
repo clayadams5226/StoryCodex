@@ -127,6 +127,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (bookTitleElement) {
         bookTitleElement.textContent = book.name;
     }
+    populateCharacterDropdowns();
     displayCharacters(book.characters);
     displayLocations(book.locations);
     displayPlotPoints(book.plotPoints);
@@ -136,6 +137,25 @@ document.addEventListener('DOMContentLoaded', function() {
     displayWordCount(book);
     populateTagDropdowns();
     showScreen('bookDetails');
+}
+
+function populateCharacterDropdowns() {
+  const character1Select = document.getElementById('character1');
+  const character2Select = document.getElementById('character2');
+  
+  if (character1Select && character2Select && currentBook) {
+      const characters = currentBook.characters;
+      
+      [character1Select, character2Select].forEach(select => {
+          select.innerHTML = '<option value="">Select a character</option>';
+          characters.forEach(character => {
+              const option = document.createElement('option');
+              option.value = character.name;
+              option.textContent = character.name;
+              select.appendChild(option);
+          });
+      });
+  }
 }
 
   function displayCharacters(characters) {
@@ -312,24 +332,33 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   const addRelationshipButton = document.getElementById('addRelationship');
-  if (addRelationshipButton) {
-      addRelationshipButton.addEventListener('click', function() {
-          const character1Input = document.getElementById('character1');
-          const character2Input = document.getElementById('character2');
-          const relationshipTypeInput = document.getElementById('relationshipType');
-          if (character1Input && character2Input && relationshipTypeInput) {
-              const character1 = character1Input.value.trim();
-              const character2 = character2Input.value.trim();
-              const relationshipType = relationshipTypeInput.value.trim();
-              if (character1 && character2 && relationshipType && currentBook) {
-                  addRelationship(currentBook, character1, character2, relationshipType);
-                  character1Input.value = '';
-                  character2Input.value = '';
-                  relationshipTypeInput.value = '';
-              }
-          }
-      });
-  }
+if (addRelationshipButton) {
+    addRelationshipButton.addEventListener('click', function() {
+        const character1Select = document.getElementById('character1');
+        const character2Select = document.getElementById('character2');
+        const relationshipTypeSelect = document.getElementById('relationshipType');
+        const customRelationshipTypeInput = document.getElementById('customRelationshipType');
+        
+        if (character1Select && character2Select && relationshipTypeSelect) {
+            const character1 = character1Select.value;
+            const character2 = character2Select.value;
+            let relationshipType = relationshipTypeSelect.value;
+            
+            if (relationshipType === 'other') {
+                relationshipType = customRelationshipTypeInput.value.trim();
+            }
+            
+            if (character1 && character2 && relationshipType && currentBook) {
+                addRelationship(currentBook, character1, character2, relationshipType);
+                character1Select.value = '';
+                character2Select.value = '';
+                relationshipTypeSelect.value = '';
+                customRelationshipTypeInput.value = '';
+                customRelationshipTypeInput.style.display = 'none';
+            }
+        }
+    });
+}
 
   const addNoteButton = document.getElementById('addNote');
   if (addNoteButton) {
@@ -361,6 +390,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     updateBook(book);
     displayCharacters(book.characters);
+    populateCharacterDropdowns();
 }
 
 function addLocation(book, locationName) {
@@ -388,24 +418,33 @@ function addPlotPoint(book, plotPointTitle) {
   displayPlotPoints(book.plotPoints);
 }
 
-  function addRelationship(book, character1, character2, relationshipType) {
-      const relationship = { character1, character2, type: relationshipType };
-      book.relationships.push(relationship);
-      
-      const addRelationshipToCharacter = (charName) => {
-          const char = book.characters.find(c => c.name === charName);
-          if (char) {
-              if (!char.relationships) char.relationships = [];
-              char.relationships.push(relationship);
-          }
-      };
+function addRelationship(book, character1, character2, relationshipType) {
+  const relationship = { 
+      character1, 
+      character2, 
+      type: relationshipType 
+  };
+  book.relationships.push(relationship);
+  
+  const addRelationshipToCharacter = (charName) => {
+      const char = book.characters.find(c => c.name === charName);
+      if (char) {
+          if (!char.relationships) char.relationships = [];
+          char.relationships.push(relationship);
+      }
+  };
 
-      addRelationshipToCharacter(character1);
-      addRelationshipToCharacter(character2);
+  addRelationshipToCharacter(character1);
+  addRelationshipToCharacter(character2);
 
-      updateBook(book);
-      displayBookDetails(book);
-  }
+  updateBook(book);
+  displayBookDetails(book);
+}
+
+document.getElementById('relationshipType').addEventListener('change', function() {
+  const customInput = document.getElementById('customRelationshipType');
+  customInput.style.display = this.value === 'other' ? 'block' : 'none';
+});
 
   function addNote(book, noteTitle, noteContent) {
       book.notes.push({
@@ -793,56 +832,99 @@ if (viewRelationshipGraphButton) {
 }
 
 function showRelationshipGraph(book) {
-    const container = document.getElementById('graphContainer');
-    if (container) {
-        container.innerHTML = '';
+  const container = document.getElementById('graphContainer');
+  if (container) {
+      container.innerHTML = '';
 
-        const nodes = book.characters.map((char, index) => ({
-            id: index,
-            label: char.name
-        }));
+      const nodes = book.characters.map((char, index) => ({
+          id: index,
+          label: char.name
+      }));
 
-        const edges = book.relationships.map(rel => ({
-            from: book.characters.findIndex(char => char.name === rel.character1),
-            to: book.characters.findIndex(char => char.name === rel.character2),
-            label: rel.type
-        }));
+      const edges = book.relationships.map(rel => {
+          const fromIndex = book.characters.findIndex(char => char.name === rel.character1);
+          const toIndex = book.characters.findIndex(char => char.name === rel.character2);
+          
+          // Define edge styles based on relationship type
+          let color, dashes;
+          switch(rel.type.toLowerCase()) {
+              case 'married':
+                  color = '#FF0000'; // Red
+                  dashes = false;
+                  break;
+              case 'family':
+                  color = '#00FF00'; // Green
+                  dashes = false;
+                  break;
+              case 'friend':
+                  color = '#0000FF'; // Blue
+                  dashes = false;
+                  break;
+              case 'enemy':
+                  color = '#FF00FF'; // Purple
+                  dashes = [5, 5]; // Dashed line
+                  break;
+              case 'colleague':
+                  color = '#FFA500'; // Orange
+                  dashes = false;
+                  break;
+              case 'lover':
+                color = '#FF0000'; // Red
+                dashes = false;
+                break;
+              default:
+                  color = '#808080'; // Gray for unknown relationships
+                  dashes = false;
+          }
 
-        const data = {
-            nodes: new vis.DataSet(nodes),
-            edges: new vis.DataSet(edges)
-        };
+          return {
+              from: fromIndex,
+              to: toIndex,
+              label: rel.type,
+              color: { color: color },
+              dashes: dashes
+          };
+      });
 
-        const options = {
-            nodes: {
-                shape: 'circle',
-                size: 25,
-                font: {
-                    size: 14
-                }
-            },
-            edges: {
-                font: {
-                    size: 12,
-                    align: 'middle'
-                },
-                arrows: 'to'
-            },
-            physics: {
-                enabled: true,
-                barnesHut: {
-                    gravitationalConstant: -2000,
-                    centralGravity: 0.3,
-                    springLength: 95,
-                    springConstant: 0.04,
-                    damping: 0.09
-                }
-            }
-        };
+      const data = {
+          nodes: new vis.DataSet(nodes),
+          edges: new vis.DataSet(edges)
+      };
 
-        new vis.Network(container, data, options);
-        showScreen('relationshipGraph');
-    }
+      const options = {
+          nodes: {
+              shape: 'circle',
+              size: 25,
+              font: {
+                  size: 14
+              }
+          },
+          edges: {
+              font: {
+                  size: 12,
+                  align: 'middle'
+              },
+              arrows: 'to',
+              smooth: {
+                  type: 'curvedCW',
+                  roundness: 0.2
+              }
+          },
+          physics: {
+              enabled: true,
+              barnesHut: {
+                  gravitationalConstant: -2000,
+                  centralGravity: 0.3,
+                  springLength: 95,
+                  springConstant: 0.04,
+                  damping: 0.09
+              }
+          }
+      };
+
+      new vis.Network(container, data, options);
+      showScreen('relationshipGraph');
+  }
 }
 
 // Navigation
