@@ -104,6 +104,35 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         }
     }
+    // Add event listener for save button
+    const saveSceneButton = document.getElementById('saveScene');
+if (saveSceneButton) {
+    saveSceneButton.addEventListener('click', function() {
+        console.log('Save Scene button clicked');
+        if (currentItemType === 'scene') {
+            const sceneIndex = currentBook.scenes.indexOf(currentItem);
+            if (saveSceneDetails(sceneIndex)) {
+                console.log('Scene saved successfully');
+                // Navigate back to Chapter Details
+                const chapterIndex = currentBook.chapters.findIndex(chapter => 
+                    chapter.scenes && chapter.scenes.includes(sceneIndex)
+                );
+                if (chapterIndex !== -1) {
+                    displayChapterDetails(currentBook.chapters[chapterIndex], chapterIndex);
+                } else {
+                    console.error('Could not find the chapter for this scene');
+                    showScreen('bookDetails');
+                }
+            } else {
+                console.error('Failed to save scene');
+            }
+        } else {
+            console.error('No current scene to save or wrong item type');
+        }
+    });
+} else {
+    console.error('Save Scene button not found');
+}
   
     const addBookButton = document.getElementById('addBook');
     if (addBookButton) {
@@ -476,18 +505,12 @@ if (saveChapterButton) {
 }
 
 // Add this event listener in the DOMContentLoaded event
-const saveSceneButton = document.getElementById('saveScene');
-if (saveSceneButton) {
-    saveSceneButton.addEventListener('click', function() {
-        if (currentItem && currentItemType === 'scene') {
-            const sceneIndex = currentBook.scenes.findIndex(s => s === currentItem);
-            if (sceneIndex !== -1) {
-                saveSceneDetails(sceneIndex);
-                showScreen('bookDetails');
-            }
-        }
-    });
-}
+const backToChapterFromSceneButton = document.getElementById('backToChapterFromScene');
+    if (backToChapterFromSceneButton) {
+        backToChapterFromSceneButton.addEventListener('click', function() {
+            navigateBackToChapter();
+        });
+    }
 
 function addChapter(book, chapterTitle) {
     if (!book.chapters) book.chapters = [];
@@ -527,10 +550,11 @@ function addScene(book, chapterIndex, sceneTitle) {
 }
 
 function displaySceneDetails(scene, sceneIndex) {
-    console.log('Displaying scene details:', scene);
+    console.log('Displaying scene details:', scene, 'Index:', sceneIndex);
     try {
         currentItem = scene;
         currentItemType = 'scene';
+
         const sceneTitleInput = document.getElementById('sceneTitle');
         const sceneSummaryInput = document.getElementById('sceneSummary');
         const sceneCharactersList = document.getElementById('sceneCharacters');
@@ -543,24 +567,42 @@ function displaySceneDetails(scene, sceneIndex) {
         if (!sceneLocationsList) throw new Error('sceneLocations list not found');
         if (!scenePlotPointsList) throw new Error('scenePlotPoints list not found');
 
-        sceneTitleInput.value = scene.title || '';
-        sceneSummaryInput.value = scene.summary || '';
+        sceneTitleInput.value = scene ? (scene.title || '') : '';
+        sceneSummaryInput.value = scene ? (scene.summary || '') : '';
 
-        // Display and allow adding characters
-        displayAndAddItems(scene, 'characters', sceneCharactersList, 'addCharacterToScene');
-
-        // Display and allow adding locations
-        displayAndAddItems(scene, 'locations', sceneLocationsList, 'addLocationToScene');
-
-        // Display and allow adding plot points
-        displayAndAddItems(scene, 'plotPoints', scenePlotPointsList, 'addPlotPointToScene');
+        if (scene) {
+            // Display and allow adding characters, locations, and plot points
+            displayAndAddItems(scene, 'characters', sceneCharactersList, 'addCharacterToScene');
+            displayAndAddItems(scene, 'locations', sceneLocationsList, 'addLocationToScene');
+            displayAndAddItems(scene, 'plotPoints', scenePlotPointsList, 'addPlotPointToScene');
+        } else {
+            // Clear lists for new scene
+            [sceneCharactersList, sceneLocationsList, scenePlotPointsList].forEach(list => {
+                list.innerHTML = '';
+            });
+        }
 
         // Add event listener for save button
         const saveSceneButton = document.getElementById('saveScene');
         if (saveSceneButton) {
-            saveSceneButton.onclick = function() {
-                saveSceneDetails(sceneIndex);
-            };
+            saveSceneButton.addEventListener('click', function() {
+                console.log('Save Scene button clicked');
+                if (currentItem && currentItemType === 'scene') {
+                    const sceneIndex = currentBook.scenes.findIndex(s => s === currentItem);
+                    if (sceneIndex !== -1) {
+                        saveSceneDetails(sceneIndex);
+                        console.log('Scene saved successfully');
+                        // Refresh the scene details display
+                        displaySceneDetails(currentItem, sceneIndex);
+                    } else {
+                        console.error('Scene not found in the book');
+                    }
+                } else {
+                    console.error('No current scene to save or wrong item type');
+                }
+            });
+        } else {
+            console.error('Save Scene button not found');
         }
 
         showScreen('sceneDetails');
@@ -572,48 +614,58 @@ function displaySceneDetails(scene, sceneIndex) {
 
 function saveSceneDetails(sceneIndex) {
     console.log('Saving scene details for index:', sceneIndex);
-    const scene = currentBook.scenes[sceneIndex];
-    if (!scene) {
-        console.error('Scene not found at index:', sceneIndex);
-        return;
-    }
-
-    scene.title = document.getElementById('sceneTitle').value;
-    scene.summary = document.getElementById('sceneSummary').value;
     
-    // Save characters, locations, and plot points
-    scene.characters = Array.from(document.getElementById('sceneCharacters').children).map(div => div.textContent.replace('×', '').trim());
-    scene.locations = Array.from(document.getElementById('sceneLocations').children).map(div => div.textContent.replace('×', '').trim());
-    scene.plotPoints = Array.from(document.getElementById('scenePlotPoints').children).map(div => div.textContent.replace('×', '').trim());
-
-    console.log('Updated scene:', scene);
-
-    // Find the chapter that contains this scene
-    const chapterIndex = currentBook.chapters.findIndex(chapter => 
-        chapter.scenes && chapter.scenes.includes(sceneIndex)
-    );
-    
-    if (chapterIndex !== -1) {
-        console.log('Scene belongs to chapter:', chapterIndex);
-        // Make sure the scene is in the chapter's scenes array
-        if (!currentBook.chapters[chapterIndex].scenes.includes(sceneIndex)) {
-            currentBook.chapters[chapterIndex].scenes.push(sceneIndex);
+    try {
+        let scene;
+        if (sceneIndex === -1) {
+            console.log('Creating a new scene.');
+            scene = {};
+            sceneIndex = currentBook.scenes.push(scene) - 1;
+        } else {
+            scene = currentBook.scenes[sceneIndex];
         }
-    } else {
-        console.warn('Scene not found in any chapter. Adding to the first chapter.');
-        if (currentBook.chapters.length === 0) {
-            currentBook.chapters.push({ title: 'Chapter 1', scenes: [] });
+
+        if (!scene) {
+            console.error('Scene not found at index:', sceneIndex);
+            return false;
         }
-        currentBook.chapters[0].scenes.push(sceneIndex);
-    }
 
-    updateBook(currentBook);
-    console.log('Book updated with new scene details');
+        scene.title = document.getElementById('sceneTitle').value;
+        scene.summary = document.getElementById('sceneSummary').value;
+        
+        // Save characters, locations, and plot points
+        scene.characters = Array.from(document.getElementById('sceneCharacters').children).map(div => div.textContent.replace('×', '').trim());
+        scene.locations = Array.from(document.getElementById('sceneLocations').children).map(div => div.textContent.replace('×', '').trim());
+        scene.plotPoints = Array.from(document.getElementById('scenePlotPoints').children).map(div => div.textContent.replace('×', '').trim());
 
-    if (chapterIndex !== -1) {
-        displayChapterDetails(currentBook.chapters[chapterIndex], chapterIndex);
-    } else {
-        showScreen('bookDetails');
+        console.log('Updated scene:', scene);
+
+        // Find the chapter that contains this scene
+        let chapterIndex = currentBook.chapters.findIndex(chapter => 
+            chapter.scenes && chapter.scenes.includes(sceneIndex)
+        );
+        
+        if (chapterIndex === -1) {
+            console.log('Scene not found in any chapter. Adding to the current chapter.');
+            chapterIndex = currentBook.chapters.indexOf(currentItem);
+            if (chapterIndex === -1) {
+                console.warn('Current chapter not found. Adding to the first chapter.');
+                chapterIndex = 0;
+            }
+            if (!currentBook.chapters[chapterIndex].scenes) {
+                currentBook.chapters[chapterIndex].scenes = [];
+            }
+            if (!currentBook.chapters[chapterIndex].scenes.includes(sceneIndex)) {
+                currentBook.chapters[chapterIndex].scenes.push(sceneIndex);
+            }
+        }
+
+        updateBook(currentBook);
+        console.log('Book updated with new scene details');
+        return true;
+    } catch (error) {
+        console.error('Error saving scene details:', error);
+        return false;
     }
 }
 
@@ -1310,13 +1362,33 @@ if (addTagToLocationButton) {
             showScreen('bookList');
         });
     }
-});
+  });
   
-document.querySelectorAll('.backToBook').forEach(button => {
+  document.querySelectorAll('.backToBook').forEach(button => {
     if (button) {
         button.addEventListener('click', function() {
-            showScreen('bookDetails');
+            if (currentScreen === 'sceneDetails') {
+                navigateBackToChapter();
+            } else {
+                showScreen('bookDetails');
+            }
         });
     }
-});
+  });
+
+  function navigateBackToChapter() {
+        if (currentBook && currentItem) {
+            const chapterIndex = currentBook.chapters.findIndex(chapter => 
+                chapter.scenes && chapter.scenes.includes(currentBook.scenes.indexOf(currentItem))
+            );
+            if (chapterIndex !== -1) {
+                displayChapterDetails(currentBook.chapters[chapterIndex], chapterIndex);
+            } else {
+                console.warn('Chapter not found for this scene. Returning to book details.');
+                showScreen('bookDetails');
+            }
+        } else {
+            showScreen('bookDetails');
+        }
+    }
   });
