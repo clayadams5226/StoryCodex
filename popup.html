@@ -20,6 +20,13 @@
         <h2 id="bookTitle"></h2>
         <button id="backToBooks" class="backToBooks">Back to Books</button>
 
+        <div id="chaptersSection">
+            <h3>Chapters</h3>
+            <ul id="chapters"></ul>
+            <input type="text" id="newChapterTitle" placeholder="New chapter title">
+            <button id="addChapter">Add Chapter</button>
+        </div>
+
         <div id="charactersSection">
             <h3>Characters</h3>
             <ul id="characters"></ul>
@@ -96,6 +103,45 @@
             <input type="number" id="newTargetWordCount" placeholder="Update target word count">
             <button id="updateWordCount">Update</button>
         </div>
+    </div>
+
+    <div id="chapterDetails" style="display: none;">
+        <h2>Chapter Details</h2>
+        <input type="text" id="chapterTitle" placeholder="Chapter title">
+        <textarea id="chapterSummary" placeholder="Chapter summary"></textarea>
+        <h3>Scenes in this Chapter</h3>
+            <ul id="scenes"></ul>
+            <input type="text" id="newSceneTitle" placeholder="New Scene name">
+            <button id="addScene">Add Scene</button>
+        <ul id="chapterScenes"></ul>
+        <button id="saveChapter">Save Chapter</button>
+        <button id="backToBookFromChapter" class="backToBook">Back to Book</button>
+    </div>
+    
+    <div id="sceneDetails" style="display: none;">
+        <h2>Scene Details</h2>
+        <input type="text" id="sceneTitle" placeholder="Scene title">
+        <textarea id="sceneSummary" placeholder="Scene summary"></textarea>
+        
+        <h3>Characters in this Scene</h3>
+        <div id="sceneCharacters"></div>
+        <select id="addCharacterToScene">
+            <option value="">Add a character</option>
+        </select>
+        
+        <h3>Locations in this Scene</h3>
+        <div id="sceneLocations"></div>
+        <select id="addLocationToScene">
+            <option value="">Add a location</option>
+        </select>
+        
+        <h3>Plot Points in this Scene</h3>
+        <div id="scenePlotPoints"></div>
+        <select id="addPlotPointToScene">
+            <option value="">Add a plot point</option>
+        </select>
+        <button id="saveScene">Save Scene</button>
+        <button id="backToBookFromScene" class="backToBook">Back to Book</button>
     </div>
 
     <div id="characterDetails" style="display: none;">
