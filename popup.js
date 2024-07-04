@@ -1,3 +1,5 @@
+import { RelationshipGraph } from './RelationshipGraph.js';
+
 document.addEventListener('DOMContentLoaded', function() {
     let books = [];
     let currentBook = null;
@@ -1251,109 +1253,19 @@ if (addTagToLocationButton) {
   
   // Display relationship graph
   const viewRelationshipGraphButton = document.getElementById('viewRelationshipGraph');
-  if (viewRelationshipGraphButton) {
-      viewRelationshipGraphButton.addEventListener('click', function() {
-          if (currentBook) {
-              showRelationshipGraph(currentBook);
-          }
-      });
-  }
+if (viewRelationshipGraphButton) {
+    viewRelationshipGraphButton.addEventListener('click', function() {
+        if (currentBook) {
+            showRelationshipGraph(currentBook);
+        }
+    });
+}
   
   function showRelationshipGraph(book) {
-    const container = document.getElementById('graphContainer');
-    if (container) {
-        container.innerHTML = '';
-  
-        const nodes = book.characters.map((char, index) => ({
-            id: index,
-            label: char.name
-        }));
-  
-        const edges = book.relationships.map(rel => {
-            const fromIndex = book.characters.findIndex(char => char.name === rel.character1);
-            const toIndex = book.characters.findIndex(char => char.name === rel.character2);
-            
-            // Define edge styles based on relationship type
-            let color, dashes;
-            switch(rel.type.toLowerCase()) {
-                case 'married':
-                    color = '#FF0000'; // Red
-                    dashes = false;
-                    break;
-                case 'family':
-                    color = '#00FF00'; // Green
-                    dashes = false;
-                    break;
-                case 'friend':
-                    color = '#0000FF'; // Blue
-                    dashes = false;
-                    break;
-                case 'enemy':
-                    color = '#FF00FF'; // Purple
-                    dashes = [5, 5]; // Dashed line
-                    break;
-                case 'colleague':
-                    color = '#FFA500'; // Orange
-                    dashes = false;
-                    break;
-                case 'lover':
-                  color = '#FF0000'; // Red
-                  dashes = false;
-                  break;
-                default:
-                    color = '#808080'; // Gray for unknown relationships
-                    dashes = false;
-            }
-  
-            return {
-                from: fromIndex,
-                to: toIndex,
-                label: rel.type,
-                color: { color: color },
-                dashes: dashes
-            };
-        });
-  
-        const data = {
-            nodes: new vis.DataSet(nodes),
-            edges: new vis.DataSet(edges)
-        };
-  
-        const options = {
-            nodes: {
-                shape: 'circle',
-                size: 25,
-                font: {
-                    size: 14
-                }
-            },
-            edges: {
-                font: {
-                    size: 12,
-                    align: 'middle'
-                },
-                arrows: 'to',
-                smooth: {
-                    type: 'curvedCW',
-                    roundness: 0.2
-                }
-            },
-            physics: {
-                enabled: true,
-                barnesHut: {
-                    gravitationalConstant: -2000,
-                    centralGravity: 0.3,
-                    springLength: 95,
-                    springConstant: 0.04,
-                    damping: 0.09
-                }
-            }
-        };
-  
-        new vis.Network(container, data, options);
-        showScreen('relationshipGraph');
-    }
-  }
+    const graph = new RelationshipGraph(book);
+    graph.show();
+    showScreen('relationshipGraph');
+}
   
   // Navigation
   document.querySelectorAll('.backToBooks').forEach(button => {
