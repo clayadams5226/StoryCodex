@@ -1,4 +1,5 @@
 import { RelationshipGraph } from './RelationshipGraph.js';
+import { DataManager } from './DataManager.js';
 
 document.addEventListener('DOMContentLoaded', function() {
     let books = [];
@@ -6,6 +7,7 @@ document.addEventListener('DOMContentLoaded', function() {
     let currentItem = null;
     let currentScreen = 'bookList';
     let currentItemType = null;
+    const dataManager = new DataManager();
   
     // Load initial state
     chrome.storage.sync.get(['books', 'currentState'], function(result) {
@@ -106,7 +108,7 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         }
     }
-    // Add event listener for save button
+    // Add event listener for save buttons
     const saveSceneButton = document.getElementById('saveScene');
 if (saveSceneButton) {
     saveSceneButton.addEventListener('click', function() {
@@ -149,6 +151,41 @@ if (saveSceneButton) {
             }
         });
     }
+
+    const exportButton = document.getElementById('exportBook');
+if (exportButton) {
+    exportButton.addEventListener('click', function() {
+        if (currentBook) {
+            dataManager.setCurrentBook(currentBook);
+            dataManager.exportToJSON();
+        } else {
+            alert('No book is currently selected');
+        }
+    });
+}
+
+const importButton = document.getElementById('importBookButton');
+const importInput = document.getElementById('importBook');
+if (importButton && importInput) {
+    importButton.addEventListener('click', function() {
+        importInput.click();
+    });
+
+    importInput.addEventListener('change', function(event) {
+        const file = event.target.files[0];
+        if (file) {
+            dataManager.importFromJSON(file)
+                .then(importedBook => {
+                    books.push(importedBook);
+                    updateBooks(books);
+                    alert('Book imported successfully');
+                })
+                .catch(error => {
+                    alert(`Import failed: ${error.message}`);
+                });
+        }
+    });
+}
   
     function addBook(bookName) {
       const newBook = {

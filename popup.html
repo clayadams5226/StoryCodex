@@ -14,6 +14,8 @@
         <ul id="books"></ul>
         <input type="text" id="newBookName" placeholder="New book name">
         <button id="addBook">Add Book</button>
+        <input type="file" id="importBook" accept=".json" style="display: none;">
+        <button id="importBookButton">Import Book</button>
     </div>
 
     <div id="bookDetails" style="display: none;">
@@ -103,6 +105,8 @@
             <input type="number" id="newTargetWordCount" placeholder="Update target word count">
             <button id="updateWordCount">Update</button>
         </div>
+
+        <button id="exportBook">Export Book</button>
     </div>
 
     <div id="chapterDetails" style="display: none;">
