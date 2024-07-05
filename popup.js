@@ -1,5 +1,6 @@
 import { RelationshipGraph } from './RelationshipGraph.js';
 import { DataManager } from './DataManager.js';
+import { RichTextEditor } from './RichTextEditor.js';
 
 document.addEventListener('DOMContentLoaded', function() {
     let books = [];
@@ -8,6 +9,7 @@ document.addEventListener('DOMContentLoaded', function() {
     let currentScreen = 'bookList';
     let currentItemType = null;
     const dataManager = new DataManager();
+    const richTextEditor = new RichTextEditor('noteEditor');
   
     // Load initial state
     chrome.storage.sync.get(['books', 'currentState'], function(result) {
@@ -55,56 +57,23 @@ document.addEventListener('DOMContentLoaded', function() {
         saveCurrentState();
     }
 
-    function initializeRichTextEditor() {
-        const toolbar = document.getElementById('toolbar');
-        const noteContent = document.getElementById('noteContent');
-        const formatBlock = document.getElementById('formatBlock');
-    
-        toolbar.addEventListener('click', function(e) {
-            if (e.target.tagName === 'BUTTON') {
-                e.preventDefault();
-                let command = e.target.id;
-                if (command === 'createlink') {
-                    let url = prompt('Enter the link URL');
-                    if (url) {
-                        document.execCommand(command, false, url);
-                    }
-                } else {
-                    document.execCommand(command, false, null);
-                }
-            }
-        });
-    
-        formatBlock.addEventListener('change', function(e) {
-            document.execCommand('formatBlock', false, e.target.value);
-        });
-    
-        noteContent.addEventListener('keydown', function(e) {
-            if (e.key === 'Enter' && !e.shiftKey) {
-                document.execCommand('insertParagraph', false);
-                e.preventDefault();
-            }
-        });
-    }
-
     function openNoteEditor(note) {
         console.log('Opening note editor for:', note);
         currentItem = note;
         currentItemType = 'note';
     
-        const noteEditor = document.getElementById('noteEditor');
-        const noteTitleInput = document.getElementById('noteTitle');
-        const noteContentInput = document.getElementById('noteContent');
+        richTextEditor.setNote(note);
+        richTextEditor.show();
     
-        if (!noteEditor || !noteTitleInput || !noteContentInput) {
-            console.error('Note editor elements not found');
-            return;
-        }
+        richTextEditor.onSave((updatedNote) => {
+            updateBook(currentBook);
+            displayNotes(currentBook.notes);
+            showScreen('bookDetails');
+        });
     
-        noteTitleInput.value = note.title || '';
-        noteContentInput.innerHTML = note.content || '';
-    
-        initializeRichTextEditor();
+        richTextEditor.onCancel(() => {
+            showScreen('bookDetails');
+        });
     
         showScreen('noteEditor');
         console.log('Note editor opened');
@@ -173,54 +142,33 @@ document.addEventListener('DOMContentLoaded', function() {
     // Add event listener for save buttons
     const saveSceneButton = document.getElementById('saveScene');
     const saveNoteButton = document.getElementById('saveNote');
-if (saveNoteButton) {
-    saveNoteButton.addEventListener('click', function() {
-        saveNoteChanges();
-    });
-}
+    if (saveNoteButton) {
+        saveNoteButton.addEventListener('click', function() {
+            if (richTextEditor) {
+                richTextEditor.handleSave();
+            } else {
+                console.error('RichTextEditor instance not found');
+            }
+        });
+    }
 
 const cancelNoteButton = document.getElementById('cancelNote');
 if (cancelNoteButton) {
     cancelNoteButton.addEventListener('click', function() {
-        goBackToPreviousScreen();
+        if (richTextEditor) {
+            richTextEditor.handleCancel();
+        } else {
+            console.error('RichTextEditor instance not found');
+        }
     });
 }
 
-function saveNoteChanges() {
-    if (currentItem && currentItemType === 'note') {
-        const noteContent = document.getElementById('noteContent');
-        if (noteContent) {
-            currentItem.content = noteContent.innerHTML;
-            updateBook(currentBook);
-            goBackToPreviousScreen();
-        } else {
-            console.error('Note content element not found');
-            alert('An error occurred while saving the note. Please try again.');
-        }
-    }
-}
-    
-    function cancelNoteChanges() {
-        goBackToPreviousScreen();
-    }
-    
-    function goBackToPreviousScreen() {
-        if (currentScreen === 'noteEditor') {
-            if (currentBook) {
-                showScreen('bookDetails');
-                displayBookDetails(currentBook);
-            } else {
-                showScreen('bookList');
-            }
-        }
-    }
-
     if (saveNoteButton) {
-        saveNoteButton.addEventListener('click', saveNoteChanges);
+        saveNoteButton.addEventListener('click', RichTextEditor.saveNoteChanges);
     }
 
     if (cancelNoteButton) {
-        cancelNoteButton.addEventListener('click', cancelNoteChanges);
+        cancelNoteButton.addEventListener('click', RichTextEditor.cancelNoteChanges);
     }
 
 if (saveSceneButton) {
