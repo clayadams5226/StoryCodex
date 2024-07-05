@@ -45,19 +45,25 @@ textarea {
 }
 
 button {
-  width: 100%;
-  padding: 10px;
-  margin: 5px 0;
+  width: auto;
+  padding: 8px 15px;
+  margin: 5px 5px 5px 0;
   background-color: #4CAF50;
   color: white;
   border: none;
   border-radius: 4px;
   cursor: pointer;
-  transition: background-color 0.3s;
+  transition: background-color 0.3s, transform 0.1s;
+  font-size: 14px;
 }
 
 button:hover {
   background-color: #45a049;
+  transform: translateY(-1px);
+}
+
+button:active {
+  transform: translateY(1px);
 }
 
 .tag {
@@ -156,4 +162,149 @@ button:hover {
 
 ::-webkit-scrollbar-thumb:hover {
   background: #555;
+}
+
+#noteContent {
+  border: 1px solid #ccc;
+  min-height: 200px;
+  padding: 10px;
+  margin-top: 10px;
+  overflow-y: auto;
+}
+
+#noteEditor {
+  background-color: #ffffff;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+#noteTitle {
+  font-size: 18px;
+  font-weight: bold;
+  margin-bottom: 15px;
+}
+
+#toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-bottom: 10px;
+  padding: 5px;
+  background-color: #f5f5f5;
+  border-radius: 4px;
+}
+
+cssCopy/* Add these new styles and modify existing ones */
+
+/* General button style updates */
+button {
+    width: auto;
+    padding: 8px 15px;
+    margin: 5px 5px 5px 0;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.3s, transform 0.1s;
+    font-size: 14px;
+}
+
+button:hover {
+    background-color: #45a049;
+    transform: translateY(-1px);
+}
+
+button:active {
+    transform: translateY(1px);
+}
+
+/* Note editor specific styles */
+#noteEditor {
+    background-color: #ffffff;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+#noteTitle {
+    font-size: 18px;
+    font-weight: bold;
+    margin-bottom: 15px;
+}
+
+#toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-bottom: 10px;
+    padding: 5px;
+    background-color: #f5f5f5;
+    border-radius: 4px;
+}
+
+#toolbar button, #toolbar select {
+    padding: 5px 10px;
+    background-color: #e0e0e0;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 12px;
+}
+
+#toolbar button:hover, #toolbar select:hover {
+    background-color: #d0d0d0;
+}
+
+#noteContent {
+    border: 1px solid #e0e0e0;
+    min-height: 200px;
+    padding: 10px;
+    margin-top: 10px;
+    margin-bottom: 15px;
+    overflow-y: auto;
+    background-color: #fff;
+    border-radius: 4px;
+}
+
+#noteContent h1 {
+  font-size: 24px;
+  margin-bottom: 10px;
+}
+
+#noteContent h2 {
+  font-size: 20px;
+  margin-bottom: 8px;
+}
+
+#noteContent h3 {
+  font-size: 16px;
+  margin-bottom: 6px;
+}
+
+#noteContent ul, #noteContent ol {
+  margin-left: 20px;
+}
+
+.note-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+#saveNote {
+  background-color: #2196F3;
+}
+
+#saveNote:hover {
+  background-color: #1976D2;
+}
+
+#cancelNote {
+  background-color: #f44336;
+}
+
+#cancelNote:hover {
+  background-color: #d32f2f;
 }

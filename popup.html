@@ -1,240 +1,257 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Story Codex</title>
-    <link rel="stylesheet" href="styles.css">
-    <link rel="stylesheet" href="vis.min.css">
-    <script src="vis.min.js"></script>
-</head>
-<body>
-    <div id="bookList">
-        <h1>My Books</h1>
-        <ul id="books"></ul>
-        <input type="text" id="newBookName" placeholder="New book name">
-        <button id="addBook">Add Book</button>
-        <input type="file" id="importBook" accept=".json" style="display: none;">
-        <button id="importBookButton">Import Book</button>
-    </div>
-
-    <div id="bookDetails" style="display: none;">
-        <h2 id="bookTitle"></h2>
-        <button id="backToBooks" class="backToBooks">Back to Books</button>
-
-        <div id="chaptersSection">
-            <h3>Chapters</h3>
-            <ul id="chapters"></ul>
-            <input type="text" id="newChapterTitle" placeholder="New chapter title">
-            <button id="addChapter">Add Chapter</button>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Story Codex</title>
+        <link rel="stylesheet" href="styles.css">
+        <link rel="stylesheet" href="vis.min.css">
+        <script src="vis.min.js"></script>
+    </head>
+    <body>
+        <div id="bookList">
+            <h1>My Books</h1>
+            <ul id="books"></ul>
+            <input type="text" id="newBookName" placeholder="New book name">
+            <button id="addBook">Add Book</button>
+            <input type="file" id="importBook" accept=".json" style="display: none;">
+            <button id="importBookButton">Import Book</button>
         </div>
-
-        <div id="charactersSection">
-            <h3>Characters</h3>
-            <ul id="characters"></ul>
-            <input type="text" id="newCharacterName" placeholder="New character name">
-            <button id="addCharacter">Add Character</button>
+    
+        <div id="bookDetails" style="display: none;">
+            <h2 id="bookTitle"></h2>
+            <button class="backToBooks">Back to Books</button>
+    
+            <div id="chaptersSection">
+                <h3>Chapters</h3>
+                <ul id="chapters"></ul>
+                <input type="text" id="newChapterTitle" placeholder="New chapter title">
+                <button id="addChapter">Add Chapter</button>
+            </div>
+    
+            <div id="charactersSection">
+                <h3>Characters</h3>
+                <ul id="characters"></ul>
+                <input type="text" id="newCharacterName" placeholder="New character name">
+                <button id="addCharacter">Add Character</button>
+            </div>
+    
+            <div id="locationsSection">
+                <h3>Locations</h3>
+                <ul id="locations"></ul>
+                <input type="text" id="newLocationName" placeholder="New location name">
+                <button id="addLocation">Add Location</button>
+            </div>
+    
+            <div id="plotPointsSection">
+                <h3>Plot Points</h3>
+                <ul id="plotPoints"></ul>
+                <input type="text" id="newPlotPoint" placeholder="New plot point">
+                <button id="addPlotPoint">Add Plot Point</button>
+            </div>
+    
+            <div id="tagsSection">
+                <h3>Tags</h3>
+                <div id="tags"></div>
+                <select id="tagSelect" class="tagSelect">
+                    <option value="">Select a tag or type a new one</option>
+                </select>
+                <input type="text" id="newTagName" placeholder="New tag">
+                <button id="addTag">Add Tag</button>
+            </div>
+    
+            <div id="relationshipsSection">
+                <h3>Relationships</h3>
+                <select id="character1">
+                    <option value="">Select character 1</option>
+                </select>
+                <select id="character2">
+                    <option value="">Select character 2</option>
+                </select>
+                <select id="relationshipType">
+                    <option value="">Select relationship type</option>
+                    <option value="married">Married</option>
+                    <option value="family">Family</option>
+                    <option value="friend">Friend</option>
+                    <option value="enemy">Enemy</option>
+                    <option value="colleague">Colleague</option>
+                    <option value="lover">Lover</option>
+                    <option value="other">Other</option>
+                </select>
+                <input type="text" id="customRelationshipType" placeholder="Custom relationship type" style="display: none;">
+                <button id="addRelationship">Add Relationship</button>
+                <ul id="relationships"></ul>
+                <button id="viewRelationshipGraph">View Relationship Graph</button>
+            </div>
+    
+            <div id="notesSection">
+                <h3>Notes</h3>
+                <ul id="notes"></ul>
+                <input type="text" id="newNoteTitle" placeholder="Note title">
+                <button id="addNote">Add Note</button>
+            </div>
+    
+            <div id="tagsOverviewSection">
+                <h3>All Tags</h3>
+                <div id="allTags"></div>
+            </div>
+    
+            <div id="wordCountSection">
+                <h3>Word Count</h3>
+                <div id="wordCountDisplay"></div>
+                <div id="progressBar"></div>
+                <input type="number" id="newWordCount" placeholder="Update word count">
+                <input type="number" id="newTargetWordCount" placeholder="Update target word count">
+                <button id="updateWordCount">Update</button>
+            </div>
+    
+            <button id="exportBook">Export Book</button>
         </div>
-
-        <div id="locationsSection">
-            <h3>Locations</h3>
-            <ul id="locations"></ul>
-            <input type="text" id="newLocationName" placeholder="New location name">
-            <button id="addLocation">Add Location</button>
-        </div>
-
-        <div id="plotPointsSection">
-            <h3>Plot Points</h3>
-            <ul id="plotPoints"></ul>
-            <input type="text" id="newPlotPoint" placeholder="New plot point">
-            <button id="addPlotPoint">Add Plot Point</button>
-        </div>
-
-        <div id="tagsSection">
+    
+        <div id="characterDetails" style="display: none;">
+            <h2>Character Details</h2>
+            <input type="text" id="characterName" placeholder="Character name">
+            <input type="text" id="characterNickname" placeholder="Nickname">
+            <textarea id="characterDescription" placeholder="Description"></textarea>
+            <input type="text" id="characterScene" placeholder="Memorable scene">
+            <input type="text" id="characterType" placeholder="Character type">
+            <h3>Relationships</h3>
+            <ul id="characterRelationships"></ul>
             <h3>Tags</h3>
-            <div id="tags"></div>
-            <select id="tagSelect" class="tagSelect">
+            <div id="characterTags"></div>
+            <select id="characterTagSelect" class="tagSelect">
                 <option value="">Select a tag or type a new one</option>
             </select>
-            <input type="text" id="newTagName" placeholder="New tag">
-            <button id="addTag">Add Tag</button>
-        </div>
-
-        <div id="relationshipsSection">
-            <h3>Relationships</h3>
-            <select id="character1">
-                <option value="">Select character 1</option>
-            </select>
-            <select id="character2">
-                <option value="">Select character 2</option>
-            </select>
-            <select id="relationshipType">
-                <option value="">Select relationship type</option>
-                <option value="married">Married</option>
-                <option value="family">Family</option>
-                <option value="friend">Friend</option>
-                <option value="enemy">Enemy</option>
-                <option value="colleague">Colleague</option>
-                <option value="lover">Lover</option>
-                <option value="other">Other</option>
-            </select>
-            <input type="text" id="customRelationshipType" placeholder="Custom relationship type" style="display: none;">
-            <button id="addRelationship">Add Relationship</button>
-            <ul id="relationships"></ul>
-            <button id="viewRelationshipGraph">View Relationship Graph</button>
-        </div>
-
-        <div id="notesSection">
+            <input type="text" id="characterTagInput" placeholder="Add tag">
+            <button id="addTagToCharacter">Add Tag</button>
             <h3>Notes</h3>
-            <ul id="notes"></ul>
-            <input type="text" id="newNoteTitle" placeholder="Note title">
-            <textarea id="newNoteContent" placeholder="Note content"></textarea>
-            <button id="addNote">Add Note</button>
+            <ul id="characterNotes"></ul>
+            <input type="text" id="newCharacterNoteTitle" placeholder="Note title">
+            <textarea id="newCharacterNoteContent" placeholder="Note content"></textarea>
+            <button id="addNoteToCharacter">Add Note</button>
+            <button id="saveCharacter">Save Character</button>
+            <button class="backToBook">Back to Book</button>
         </div>
-
-        <div id="tagsOverviewSection">
-            <h3>All Tags</h3>
-            <div id="allTags"></div>
-        </div>
-
-        <div id="wordCountSection">
-            <h3>Word Count</h3>
-            <div id="wordCountDisplay"></div>
-            <div id="progressBar"></div>
-            <input type="number" id="newWordCount" placeholder="Update word count">
-            <input type="number" id="newTargetWordCount" placeholder="Update target word count">
-            <button id="updateWordCount">Update</button>
-        </div>
-
-        <button id="exportBook">Export Book</button>
-    </div>
-
-    <div id="chapterDetails" style="display: none;">
-        <h2>Chapter Details</h2>
-        <input type="text" id="chapterTitle" placeholder="Chapter title">
-        <textarea id="chapterSummary" placeholder="Chapter summary"></textarea>
-        <h3>Scenes in this Chapter</h3>
-            <ul id="scenes"></ul>
-            <input type="text" id="newSceneTitle" placeholder="New Scene name">
-            <button id="addScene">Add Scene</button>
-        <ul id="chapterScenes"></ul>
-        <button id="saveChapter">Save Chapter</button>
-        <button id="backToBookFromChapter" class="backToBook">Back to Book</button>
-    </div>
     
-    <div id="sceneDetails" style="display: none;">
-        <h2>Scene Details</h2>
-        <input type="text" id="sceneTitle" placeholder="Scene title">
-        <textarea id="sceneSummary" placeholder="Scene summary"></textarea>
-        
-        <h3>Characters in this Scene</h3>
-        <div id="sceneCharacters"></div>
-        <select id="addCharacterToScene">
-            <option value="">Add a character</option>
-        </select>
-        
-        <h3>Locations in this Scene</h3>
-        <div id="sceneLocations"></div>
-        <select id="addLocationToScene">
-            <option value="">Add a location</option>
-        </select>
-        
-        <h3>Plot Points in this Scene</h3>
-        <div id="scenePlotPoints"></div>
-        <select id="addPlotPointToScene">
-            <option value="">Add a plot point</option>
-        </select>
-        <button id="saveScene">Save Scene</button>
-        <button id="backToChapterFromScene" class="backToChapter">Back to Chapter</button>
-    </div>
-
-    <div id="characterDetails" style="display: none;">
-        <h2>Character Details</h2>
-        <input type="text" id="characterName" placeholder="Character name">
-        <input type="text" id="characterNickname" placeholder="Nickname">
-        <textarea id="characterDescription" placeholder="Description"></textarea>
-        <input type="text" id="characterScene" placeholder="Memorable scene">
-        <input type="text" id="characterType" placeholder="Character type">
-        <h3>Relationships</h3>
-        <ul id="characterRelationships"></ul>
-        <h3>Tags</h3>
-        <div id="characterTags"></div>
-        <select id="characterTagSelect" class="tagSelect">
-            <option value="">Select a tag or type a new one</option>
-        </select>
-        <input type="text" id="characterTagInput" placeholder="Add tag">
-        <button id="addTagToCharacter">Add Tag</button>
-        <h3>Notes</h3>
-        <ul id="characterNotes"></ul>
-        <input type="text" id="newCharacterNoteTitle" placeholder="Note title">
-        <textarea id="newCharacterNoteContent" placeholder="Note content"></textarea>
-        <button id="addNoteToCharacter">Add Note</button>
-        <button id="saveCharacter">Save Character</button>
-        <button id="backToBook" class="backToBook">Back to Book</button>
-    </div>
-
-    <div id="locationDetails" style="display: none;">
-        <h2>Location Details</h2>
-        <input type="text" id="locationName" placeholder="Location name">
-        <textarea id="locationDescription" placeholder="Description"></textarea>
-        <input type="text" id="locationImportance" placeholder="Importance to story">
-        <h3>Tags</h3>
-        <div id="locationTags"></div>
-        <select id="locationTagSelect" class="tagSelect">
-            <option value="">Select a tag or type a new one</option>
-        </select>
-        <input type="text" id="locationTagInput" placeholder="Add tag">
-        <button id="addTagToLocation">Add Tag</button>
-        <h3>Notes</h3>
-        <ul id="locationNotes"></ul>
-        <input type="text" id="newLocationNoteTitle" placeholder="Note title">
-        <textarea id="newLocationNoteContent" placeholder="Note content"></textarea>
-        <button id="addNoteToLocation">Add Note</button>
-        <button id="saveLocation">Save Location</button>
-        <button id="backToBookFromLocation" class="backToBook">Back to Book</button>
-    </div>
-
-    <div id="plotPointDetails" style="display: none;">
-        <h2>Plot Point Details</h2>
-        <input type="text" id="plotPointTitle" placeholder="Plot point title">
-        <textarea id="plotPointDescription" placeholder="Description"></textarea>
-        <input type="text" id="plotPointCharacters" placeholder="Involved characters">
-        <input type="text" id="plotPointLocation" placeholder="Location">
-        <h3>Tags</h3>
-        <div id="plotPointTags"></div>
-        <select id="plotPointTagSelect" class="tagSelect">
-            <option value="">Select a tag or type a new one</option>
-        </select>
-        <input type="text" id="plotPointTagInput" placeholder="Add tag">
-        <button id="addTagToPlotPoint">Add Tag</button>
-        <h3>Notes</h3>
-        <ul id="plotPointNotes"></ul>
-        <input type="text" id="newPlotPointNoteTitle" placeholder="Note title">
-        <textarea id="newPlotPointNoteContent" placeholder="Note content"></textarea>
-        <button id="addNoteToPlotPoint">Add Note</button>
-        <button id="savePlotPoint">Save Plot Point</button>
-        <button id="backToBookFromPlotPoint" class="backToBook">Back to Book</button>
-    </div>
-
-    <div id="noteDetails" style="display: none;">
-        <h2 id="noteTitle"></h2>
-        <p id="noteContent"></p>
-        <button id="backToBookFromNote" class="backToBook">Back to Book</button>
-    </div>
-
-    <div id="taggedItems" style="display: none;">
-        <h2>Items tagged with <span id="currentTag"></span></h2>
-        <ul id="taggedItemsList"></ul>
-        <button id="backToBookFromTaggedItems" class="backToBook">Back to Book</button>
-    </div>
-
-    <div id="relationshipGraph" style="display: none;">
-        <h2>Character Relationships</h2>
-        <div id="graphContainer"></div>
-        <button id="backToBookFromGraph" class="backToBook">Back to Book</button>
-    </div>
-
-<script type="module" src="RelationshipGraph.js"></script>
-<script type="module" src="popup.js"></script>
-</body>
-</html>
+        <div id="locationDetails" style="display: none;">
+            <h2>Location Details</h2>
+            <input type="text" id="locationName" placeholder="Location name">
+            <textarea id="locationDescription" placeholder="Description"></textarea>
+            <input type="text" id="locationImportance" placeholder="Importance to story">
+            <h3>Tags</h3>
+            <div id="locationTags"></div>
+            <select id="locationTagSelect" class="tagSelect">
+                <option value="">Select a tag or type a new one</option>
+            </select>
+            <input type="text" id="locationTagInput" placeholder="Add tag">
+            <button id="addTagToLocation">Add Tag</button>
+            <h3>Notes</h3>
+            <ul id="locationNotes"></ul>
+            <input type="text" id="newLocationNoteTitle" placeholder="Note title">
+            <textarea id="newLocationNoteContent" placeholder="Note content"></textarea>
+            <button id="addNoteToLocation">Add Note</button>
+            <button id="saveLocation">Save Location</button>
+            <button class="backToBook">Back to Book</button>
+        </div>
+        <div id="plotPointDetails" style="display: none;">
+            <h2>Plot Point Details</h2>
+            <input type="text" id="plotPointTitle" placeholder="Plot point title">
+            <textarea id="plotPointDescription" placeholder="Description"></textarea>
+            <input type="text" id="plotPointCharacters" placeholder="Involved characters">
+            <input type="text" id="plotPointLocation" placeholder="Location">
+            <h3>Tags</h3>
+            <div id="plotPointTags"></div>
+            <select id="plotPointTagSelect" class="tagSelect">
+                <option value="">Select a tag or type a new one</option>
+            </select>
+            <input type="text" id="plotPointTagInput" placeholder="Add tag">
+            <button id="addTagToPlotPoint">Add Tag</button>
+            <h3>Notes</h3>
+            <ul id="plotPointNotes"></ul>
+            <input type="text" id="newPlotPointNoteTitle" placeholder="Note title">
+            <textarea id="newPlotPointNoteContent" placeholder="Note content"></textarea>
+            <button id="addNoteToPlotPoint">Add Note</button>
+            <button id="savePlotPoint">Save Plot Point</button>
+            <button class="backToBook">Back to Book</button>
+        </div>
+    
+        <div id="noteDetails" style="display: none;">
+            <h2 id="noteDetailTitle"></h2>
+            <div id="noteDetailContent"></div>
+            <button id="editNote">Edit Note</button>
+            <button class="backToBook">Back to Book</button>
+        </div>
+    
+        <div id="noteEditor" style="display: none;">
+            <input type="text" id="noteTitle" placeholder="Note Title">
+            <div id="toolbar">
+                <select id="formatBlock">
+                    <option value="p">Paragraph</option>
+                    <option value="h1">Heading 1</option>
+                    <option value="h2">Heading 2</option>
+                    <option value="h3">Heading 3</option>
+                </select>
+                <button id="bold" title="Bold">B</button>
+                <button id="italic" title="Italic">I</button>
+                <button id="underline" title="Underline">U</button>
+                <button id="insertUnorderedList" title="Bullet List">•</button>
+                <button id="insertOrderedList" title="Numbered List">1.</button>
+                <button id="createlink" title="Insert Link">🔗</button>
+            </div>
+            <div id="noteContent" contenteditable="true"></div>
+            <button id="saveNote">Save Note</button>
+            <button id="cancelNote">Cancel</button>
+        </div>
+    
+        <div id="chapterDetails" style="display: none;">
+            <h2>Chapter Details</h2>
+            <input type="text" id="chapterTitle" placeholder="Chapter title">
+            <textarea id="chapterSummary" placeholder="Chapter summary"></textarea>
+            <h3>Scenes in this Chapter</h3>
+            <ul id="chapterScenes"></ul>
+            <input type="text" id="newSceneTitle" placeholder="New Scene title">
+            <button id="addScene">Add Scene</button>
+            <button id="saveChapter">Save Chapter</button>
+            <button class="backToBook">Back to Book</button>
+        </div>
+    
+        <div id="sceneDetails" style="display: none;">
+            <h2>Scene Details</h2>
+            <input type="text" id="sceneTitle" placeholder="Scene title">
+            <textarea id="sceneSummary" placeholder="Scene summary"></textarea>
+            <h3>Characters in this Scene</h3>
+            <div id="sceneCharacters"></div>
+            <select id="addCharacterToScene">
+                <option value="">Add a character</option>
+            </select>
+            <h3>Locations in this Scene</h3>
+            <div id="sceneLocations"></div>
+            <select id="addLocationToScene">
+                <option value="">Add a location</option>
+            </select>
+            <h3>Plot Points in this Scene</h3>
+            <div id="scenePlotPoints"></div>
+            <select id="addPlotPointToScene">
+                <option value="">Add a plot point</option>
+            </select>
+            <button id="saveScene">Save Scene</button>
+            <button id="backToChapterFromScene">Back to Chapter</button>
+        </div>
+    
+        <div id="taggedItems" style="display: none;">
+            <h2>Items tagged with <span id="currentTag"></span></h2>
+            <ul id="taggedItemsList"></ul>
+            <button class="backToBook">Back to Book</button>
+        </div>
+    
+        <div id="relationshipGraph" style="display: none;">
+            <h2>Character Relationships</h2>
+            <div id="graphContainer"></div>
+            <button class="backToBook">Back to Book</button>
+        </div>
+    
+        <script type="module" src="RelationshipGraph.js"></script>
+        <script type="module" src="DataManager.js"></script>
+        <script type="module" src="popup.js"></script>
+    </body>
+    </html>

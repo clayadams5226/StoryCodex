@@ -42,7 +42,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Utility Functions
     function showScreen(screenId) {
         console.log('Showing screen:', screenId);
-        const screens = ['bookList', 'bookDetails', 'characterDetails', 'locationDetails', 'plotPointDetails', 'noteDetails', 'chapterDetails', 'sceneDetails', 'taggedItems', 'relationshipGraph'];
+        const screens = ['bookList', 'bookDetails', 'characterDetails', 'locationDetails', 'plotPointDetails', 'noteDetails', 'chapterDetails', 'sceneDetails', 'taggedItems', 'relationshipGraph', 'noteEditor'];
         screens.forEach(screen => {
             const screenElement = document.getElementById(screen);
             if (screenElement) {
@@ -53,6 +53,61 @@ document.addEventListener('DOMContentLoaded', function() {
         });
         currentScreen = screenId;
         saveCurrentState();
+    }
+
+    function initializeRichTextEditor() {
+        const toolbar = document.getElementById('toolbar');
+        const noteContent = document.getElementById('noteContent');
+        const formatBlock = document.getElementById('formatBlock');
+    
+        toolbar.addEventListener('click', function(e) {
+            if (e.target.tagName === 'BUTTON') {
+                e.preventDefault();
+                let command = e.target.id;
+                if (command === 'createlink') {
+                    let url = prompt('Enter the link URL');
+                    if (url) {
+                        document.execCommand(command, false, url);
+                    }
+                } else {
+                    document.execCommand(command, false, null);
+                }
+            }
+        });
+    
+        formatBlock.addEventListener('change', function(e) {
+            document.execCommand('formatBlock', false, e.target.value);
+        });
+    
+        noteContent.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                document.execCommand('insertParagraph', false);
+                e.preventDefault();
+            }
+        });
+    }
+
+    function openNoteEditor(note) {
+        console.log('Opening note editor for:', note);
+        currentItem = note;
+        currentItemType = 'note';
+    
+        const noteEditor = document.getElementById('noteEditor');
+        const noteTitleInput = document.getElementById('noteTitle');
+        const noteContentInput = document.getElementById('noteContent');
+    
+        if (!noteEditor || !noteTitleInput || !noteContentInput) {
+            console.error('Note editor elements not found');
+            return;
+        }
+    
+        noteTitleInput.value = note.title || '';
+        noteContentInput.innerHTML = note.content || '';
+    
+        initializeRichTextEditor();
+    
+        showScreen('noteEditor');
+        console.log('Note editor opened');
     }
   
     function saveCurrentState() {
@@ -76,14 +131,21 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   
     function updateBook(updatedBook) {
+        console.log('Updating book:', updatedBook);
         const index = books.findIndex(book => book.name === updatedBook.name);
         if (index !== -1) {
             books[index] = updatedBook;
             chrome.storage.sync.set({ books: books }, function() {
-                console.log('Book updated in storage');
-                if (currentBook && currentBook.name === updatedBook.name) {
-                    currentBook = updatedBook;
-                    console.log('Current book updated');
+                if (chrome.runtime.lastError) {
+                    console.error('Error updating book:', chrome.runtime.lastError);
+                } else {
+                    console.log('Book updated in storage');
+                    if (currentBook && currentBook.name === updatedBook.name) {
+                        currentBook = updatedBook;
+                        console.log('Current book updated');
+                    }
+                    displayBooks(books);
+                    displayNotes(updatedBook.notes);
                 }
             });
         } else {
@@ -110,6 +172,57 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     // Add event listener for save buttons
     const saveSceneButton = document.getElementById('saveScene');
+    const saveNoteButton = document.getElementById('saveNote');
+if (saveNoteButton) {
+    saveNoteButton.addEventListener('click', function() {
+        saveNoteChanges();
+    });
+}
+
+const cancelNoteButton = document.getElementById('cancelNote');
+if (cancelNoteButton) {
+    cancelNoteButton.addEventListener('click', function() {
+        goBackToPreviousScreen();
+    });
+}
+
+function saveNoteChanges() {
+    if (currentItem && currentItemType === 'note') {
+        const noteContent = document.getElementById('noteContent');
+        if (noteContent) {
+            currentItem.content = noteContent.innerHTML;
+            updateBook(currentBook);
+            goBackToPreviousScreen();
+        } else {
+            console.error('Note content element not found');
+            alert('An error occurred while saving the note. Please try again.');
+        }
+    }
+}
+    
+    function cancelNoteChanges() {
+        goBackToPreviousScreen();
+    }
+    
+    function goBackToPreviousScreen() {
+        if (currentScreen === 'noteEditor') {
+            if (currentBook) {
+                showScreen('bookDetails');
+                displayBookDetails(currentBook);
+            } else {
+                showScreen('bookList');
+            }
+        }
+    }
+
+    if (saveNoteButton) {
+        saveNoteButton.addEventListener('click', saveNoteChanges);
+    }
+
+    if (cancelNoteButton) {
+        cancelNoteButton.addEventListener('click', cancelNoteChanges);
+    }
+
 if (saveSceneButton) {
     saveSceneButton.addEventListener('click', function() {
         console.log('Save Scene button clicked');
@@ -366,15 +479,22 @@ if (importButton && importInput) {
     }
   
     function displayNotes(notes) {
+        console.log('Displaying notes:', notes);
         const noteList = document.getElementById('notes');
         if (noteList) {
             noteList.innerHTML = '';
-            notes.forEach(note => {
-                const li = document.createElement('li');
-                li.textContent = note.title;
-                li.addEventListener('click', () => showItemDetails('note', note));
-                noteList.appendChild(li);
-            });
+            if (notes && notes.length > 0) {
+                notes.forEach(note => {
+                    const li = document.createElement('li');
+                    li.textContent = note.title;
+                    li.addEventListener('click', () => showItemDetails('note', note));
+                    noteList.appendChild(li);
+                });
+            } else {
+                noteList.innerHTML = '<li>No notes yet</li>';
+            }
+        } else {
+            console.error('Note list element not found');
         }
     }
   
@@ -481,22 +601,19 @@ if (addRelationshipButton) {
       });
   }
   
-    const addNoteButton = document.getElementById('addNote');
-    if (addNoteButton) {
-        addNoteButton.addEventListener('click', function() {
-            const newNoteTitleInput = document.getElementById('newNoteTitle');
-            const newNoteContentInput = document.getElementById('newNoteContent');
-            if (newNoteTitleInput && newNoteContentInput) {
-                const noteTitle = newNoteTitleInput.value.trim();
-                const noteContent = newNoteContentInput.value.trim();
-                if (noteTitle && noteContent && currentBook) {
-                    addNote(currentBook, noteTitle, noteContent);
-                    newNoteTitleInput.value = '';
-                    newNoteContentInput.value = '';
-                }
-            }
-        });
-    }
+  const addNoteButton = document.getElementById('addNote');
+  if (addNoteButton) {
+      addNoteButton.addEventListener('click', function() {
+          const newNoteTitleInput = document.getElementById('newNoteTitle');
+          if (newNoteTitleInput && currentBook) {
+              const noteTitle = newNoteTitleInput.value.trim();
+              if (noteTitle) {
+                  addNote(currentBook, noteTitle, '');
+                  newNoteTitleInput.value = '';
+              }
+          }
+      });
+  }
   
     const addChapterButton = document.getElementById('addChapter');
 if (addChapterButton) {
@@ -783,15 +900,29 @@ document.getElementById('relationshipType').addEventListener('change', function(
   customInput.style.display = this.value === 'other' ? 'block' : 'none';
 });
 
-function addNote(book, noteTitle, noteContent) {
+function addNote(book, title, content = '') {
+    console.log('Adding new note to book:', book.name);
     const newNote = {
-        title: noteTitle,
-        content: noteContent
+        title: title,
+        content: content,
+        createdAt: new Date().toISOString()
     };
+    
+    if (!book.notes) {
+        book.notes = [];
+    }
+    
     book.notes.push(newNote);
+    console.log('New note added:', newNote);
+    
     updateBook(book);
+    console.log('Book updated with new note');
+    
     displayNotes(book.notes);
-    return newNote;
+    console.log('Notes display updated');
+    
+    // Optionally, open the note editor for the new note
+    openNoteEditor(newNote);
 }
 
 // Item Details Functions
@@ -800,24 +931,31 @@ function showItemDetails(itemType, item, index) {
     try {
         currentItem = item;
         currentItemType = itemType;
-        switch(itemType) {
+        
+        switch (itemType) {
             case 'character':
                 displayCharacterDetails(item);
+                showScreen('characterDetails');
                 break;
             case 'location':
                 displayLocationDetails(item);
+                showScreen('locationDetails');
                 break;
             case 'plotPoint':
                 displayPlotPointDetails(item);
+                showScreen('plotPointDetails');
                 break;
             case 'note':
                 displayNoteDetails(item);
+                showScreen('noteDetails');
                 break;
             case 'chapter':
                 displayChapterDetails(item, index);
+                showScreen('chapterDetails');
                 break;
             case 'scene':
                 displaySceneDetails(item, index);
+                showScreen('sceneDetails');
                 break;
             default:
                 console.error('Unknown item type:', itemType);
@@ -995,11 +1133,16 @@ function displayPlotPointDetails(plotPoint) {
 }
 
 function displayNoteDetails(note) {
-    const noteTitleElement = document.getElementById('noteTitle');
-    const noteContentElement = document.getElementById('noteContent');
-    if (noteTitleElement) noteTitleElement.textContent = note.title;
-    if (noteContentElement) noteContentElement.textContent = note.content;
-    showScreen('noteDetails');
+    const noteTitleElement = document.getElementById('noteDetailTitle');
+    const noteContentElement = document.getElementById('noteDetailContent');
+
+    if (noteTitleElement && noteContentElement) {
+        noteTitleElement.textContent = note.title;
+        noteContentElement.innerHTML = note.content;
+        showScreen('noteDetails'); // Add this line
+    } else {
+        console.error('Note detail elements not found in the DOM');
+    }
 }
 
 function displayRelationshipsForCharacter(character) {
@@ -1242,6 +1385,18 @@ if (addTagToLocationButton) {
           }
       });
   }
+
+  const editNoteButton = document.getElementById('editNote');
+if (editNoteButton) {
+    editNoteButton.addEventListener('click', function() {
+        if (currentItem && currentItemType === 'note') {
+            console.log('Editing note:', currentItem);
+            openNoteEditor(currentItem);
+        } else {
+            console.error('No current note to edit or wrong item type');
+        }
+    });
+}
   
   // Update word count
   const updateWordCountButton = document.getElementById('updateWordCount');
