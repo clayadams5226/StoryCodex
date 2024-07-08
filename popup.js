@@ -59,6 +59,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function openNoteEditor(note) {
         console.log('Opening note editor for:', note);
+        if (!note) {
+            note = { title: '', content: '' };
+        }
         currentItem = note;
         currentItemType = 'note';
     
@@ -66,6 +69,15 @@ document.addEventListener('DOMContentLoaded', function() {
         richTextEditor.show();
     
         richTextEditor.onSave((updatedNote) => {
+            if (!currentBook.notes) {
+                currentBook.notes = [];
+            }
+            const index = currentBook.notes.findIndex(n => n === note);
+            if (index === -1) {
+                currentBook.notes.push(updatedNote);
+            } else {
+                currentBook.notes[index] = updatedNote;
+            }
             updateBook(currentBook);
             displayNotes(currentBook.notes);
             showScreen('bookDetails');
@@ -911,6 +923,7 @@ function showItemDetails(itemType, item, index) {
         // Update currentScreen based on itemType
         currentScreen = `${itemType}Details`;
         saveCurrentState();
+        showScreen(`${itemType}Details`);
     } catch (error) {
         console.error(`Error displaying ${itemType} details:`, error);
         alert(`An error occurred while displaying ${itemType} details. Please check the console for more information.`);
@@ -1081,13 +1094,15 @@ function displayPlotPointDetails(plotPoint) {
 }
 
 function displayNoteDetails(note) {
+    currentItem = note;
+    currentItemType = 'note';
     const noteTitleElement = document.getElementById('noteDetailTitle');
     const noteContentElement = document.getElementById('noteDetailContent');
 
     if (noteTitleElement && noteContentElement) {
         noteTitleElement.textContent = note.title;
         noteContentElement.innerHTML = note.content;
-        showScreen('noteDetails'); // Add this line
+        showScreen('noteDetails');
     } else {
         console.error('Note detail elements not found in the DOM');
     }
@@ -1130,7 +1145,11 @@ function displayNotesForItem(item, itemType) {
             item.notes.forEach(note => {
                 const li = document.createElement('li');
                 li.textContent = note.title;
-                li.addEventListener('click', () => displayNoteDetails(note));
+                li.addEventListener('click', () => {
+                    currentItem = note;
+                    currentItemType = 'note';
+                    displayNoteDetails(note);
+                });
                 notesList.appendChild(li);
             });
         }
