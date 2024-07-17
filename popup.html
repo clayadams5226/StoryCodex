@@ -199,17 +199,17 @@
                 <button id="createlink" title="Insert Link">🔗</button>
             </div>
             <div id="noteContent" contenteditable="true"></div>
-            <button id="cancelNote">Cancel</button>
             <button id="saveNote">Save Note</button>
+            <button id="cancelNote">Cancel</button>
         </div>
     
         <div id="chapterDetails" style="display: none;">
             <h2>Chapter Details</h2>
-            <input type="text" id="chapterTitle" placeholder="Chapter title">
-            <textarea id="chapterSummary" placeholder="Chapter summary"></textarea>
-            <h3>Scenes in this Chapter</h3>
+            <input type="text" id="chapterTitle" placeholder="Chapter Title">
+            <textarea id="chapterSummary" placeholder="Chapter Summary"></textarea>
+            <h3>Scenes</h3>
             <ul id="chapterScenes"></ul>
-            <input type="text" id="newSceneTitle" placeholder="New Scene title">
+            <input type="text" id="newSceneTitle" placeholder="New Scene Title">
             <button id="addScene">Add Scene</button>
             <button id="saveChapter">Save Chapter</button>
             <button class="backToBook">Back to Book</button>
@@ -252,6 +252,7 @@
     
         <script type="module" src="RelationshipGraph.js"></script>
         <script type="module" src="DataManager.js"></script>
+        <script src="Sortable.min.js"></script>
         <script type="module" src="popup.js"></script>
     </body>
     </html>
