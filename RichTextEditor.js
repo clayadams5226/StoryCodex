@@ -7,6 +7,8 @@ export class RichTextEditor {
         this.saveButton = this.container.querySelector('#saveNote');
         this.cancelButton = this.container.querySelector('#cancelNote');
         this.currentNote = null;
+        this.saveCallback = null;
+        this.cancelCallback = null;
 
         this.initializeEventListeners();
     }
@@ -21,6 +23,11 @@ export class RichTextEditor {
         if (this.cancelButton) {
             this.cancelButton.addEventListener('click', this.handleCancel.bind(this));
         }
+    }
+
+    clearEventListeners() {
+        this.saveCallback = null;
+        this.cancelCallback = null;
     }
 
     handleToolbarClick(e) {
@@ -53,19 +60,25 @@ export class RichTextEditor {
         if (this.currentNote) {
             this.currentNote.content = this.noteContent.innerHTML;
             this.currentNote.title = this.container.querySelector('#noteTitle').value;
-            if (this.onSave) {
-                this.onSave(this.currentNote);
+            if (this.saveCallback) {
+                this.saveCallback(this.currentNote);
             }
+        } else {
+            console.error('Attempted to save null note');
         }
     }
 
     handleCancel() {
-        if (this.onCancel) {
-            this.onCancel();
+        if (this.cancelCallback) {
+            this.cancelCallback();
         }
     }
 
     setNote(note) {
+        if (!note) {
+            console.error('Attempted to set null note');
+            note = { id: Date.now(), title: '', content: '' };
+        }
         this.currentNote = note;
         this.container.querySelector('#noteTitle').value = note.title || '';
         this.noteContent.innerHTML = note.content || '';
@@ -80,10 +93,10 @@ export class RichTextEditor {
     }
 
     onSave(callback) {
-        this.onSave = callback;
+        this.saveCallback = callback;
     }
 
     onCancel(callback) {
-        this.onCancel = callback;
+        this.cancelCallback = callback;
     }
 }
