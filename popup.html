@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Story Codex</title>
+        <link rel="stylesheet" href="styles.css">
+        <link rel="stylesheet" href="vis.min.css">
+        <script src="vis.min.js"></script>
+    </head>
+    <body>
+        <div id="bookList">
+            <h1>My Books</h1>
+            <ul id="books"></ul>
+            <input type="text" id="newBookName" placeholder="New book name">
+            <button id="addBook">Add Book</button>
+            <input type="file" id="importBook" accept=".json" style="display: none;">
+            <button id="importBookButton">Import Book</button>
+        </div>
+    
+        <div id="bookDetails" style="display: none;">
+            <h2 id="bookTitle"></h2>
+
+            <div id="chaptersSection">
+                <h3>Chapters</h3>
+                <ul id="chapters"></ul>
+                <input type="text" id="newChapterTitle" placeholder="New chapter title">
+                <button id="addChapter">Add Chapter</button>
+            </div>
+    
+            <div id="charactersSection">
+                <h3>Characters</h3>
+                <ul id="characters"></ul>
+                <input type="text" id="newCharacterName" placeholder="New character name">
+                <button id="addCharacter">Add Character</button>
+            </div>
+    
+            <div id="locationsSection">
+                <h3>Locations</h3>
+                <ul id="locations"></ul>
+                <input type="text" id="newLocationName" placeholder="New location name">
+                <button id="addLocation">Add Location</button>
+            </div>
+    
+            <div id="plotPointsSection">
+                <h3>Plot Points</h3>
+                <ul id="plotPoints"></ul>
+                <input type="text" id="newPlotPoint" placeholder="New plot point">
+                <button id="addPlotPoint">Add Plot Point</button>
+            </div>
+    
+            <div id="tagsSection">
+                <h3>Tags</h3>
+                <div id="tags"></div>
+                <select id="tagSelect" class="tagSelect">
+                    <option value="">Select a tag or type a new one</option>
+                </select>
+                <input type="text" id="newTagName" placeholder="New tag">
+                <button id="addTag">Add Tag</button>
+            </div>
+    
+            <div id="relationshipsSection">
+                <h3>Relationships</h3>
+                <select id="character1">
+                    <option value="">Select character 1</option>
+                </select>
+                <select id="character2">
+                    <option value="">Select character 2</option>
+                </select>
+                <select id="relationshipType">
+                    <option value="">Select relationship type</option>
+                    <option value="married">Married</option>
+                    <option value="family">Family</option>
+                    <option value="friend">Friend</option>
+                    <option value="enemy">Enemy</option>
+                    <option value="colleague">Colleague</option>
+                    <option value="lover">Lover</option>
+                    <option value="other">Other</option>
+                </select>
+                <input type="text" id="customRelationshipType" placeholder="Custom relationship type" style="display: none;">
+                <button id="addRelationship">Add Relationship</button>
+                <ul id="relationships"></ul>
+                <button id="viewRelationshipGraph">View Relationship Graph</button>
+            </div>
+    
+            <div id="notesSection">
+                <h3>Notes</h3>
+                <ul id="notes"></ul>
+                <input type="text" id="newNoteTitle" placeholder="Note title">
+                <button id="addNote">Add Note</button>
+            </div>
+    
+            <div id="tagsOverviewSection">
+                <h3>All Tags</h3>
+                <div id="allTags"></div>
+            </div>
+    
+            <div id="wordCountSection">
+                <h3>Word Count</h3>
+                <div id="wordCountDisplay"></div>
+                <div id="progressBar"></div>
+                <input type="number" id="newWordCount" placeholder="Update word count">
+                <input type="number" id="newTargetWordCount" placeholder="Update target word count">
+                <button id="updateWordCount">Update</button>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="action-buttons">
+                <button class="secondary-action backToBooks">Back to Books</button>
+                <button class="primary-action" id="exportBook">Export Book</button>
+            </div>
+        </div>
+    
+        <div id="characterDetails" style="display: none;">
+            <h2>Character Details</h2>
+
+            <!-- Character Name (always visible) -->
+            <div class="character-name-section">
+                <input type="text" id="characterName" placeholder="Character name">
+            </div>
+
+            <!-- Picture Upload Section -->
+            <div class="character-picture-section">
+                <h3>Character Picture</h3>
+                <div class="picture-upload-container">
+                    <img id="characterPicturePreview" class="character-picture-preview" style="display: none;" alt="Character preview">
+                    <input type="file" id="characterPictureInput" accept="image/png, image/jpeg" style="display: none;">
+                    <button id="uploadPictureButton" class="upload-picture-btn">Upload Picture</button>
+                    <button id="removePictureButton" class="remove-picture-btn" style="display: none;">Remove Picture</button>
+                    <p class="picture-help-text">PNG or JPG, max 5MB. Images are automatically resized to 200x200px.</p>
+                </div>
+            </div>
+
+            <!-- Basic Details Section (expanded by default) -->
+            <div class="collapsible-section" data-section="basic-details">
+                <h3 class="collapsible-header">
+                    <span class="collapse-icon">▼</span> Basic Details
+                </h3>
+                <div class="collapsible-content">
+                    <input type="text" id="characterNickname" placeholder="Nickname">
+                    <input type="text" id="characterAge" placeholder="Age">
+                    <input type="text" id="characterOccupation" placeholder="Occupation">
+                    <input type="text" id="characterPronouns" placeholder="Pronouns (e.g., he/him, she/her, they/them)">
+                    <select id="characterRole">
+                        <option value="">Select Role/Archetype</option>
+                        <option value="protagonist">Protagonist</option>
+                        <option value="antagonist">Antagonist</option>
+                        <option value="supporting">Supporting Character</option>
+                        <option value="minor">Minor Character</option>
+                    </select>
+                    <input type="text" id="characterAliases" placeholder="Aliases (other names)">
+                    <select id="characterStatus">
+                        <option value="">Select Status</option>
+                        <option value="alive">Alive</option>
+                        <option value="deceased">Deceased</option>
+                        <option value="unknown">Unknown</option>
+                    </select>
+                    <!-- Keeping legacy fields for backward compatibility -->
+                    <textarea id="characterDescription" placeholder="Description (legacy field)"></textarea>
+                    <input type="text" id="characterScene" placeholder="Memorable scene">
+                    <input type="text" id="characterType" placeholder="Character type">
+                </div>
+            </div>
+
+            <!-- Physical Description Section (collapsed by default) -->
+            <div class="collapsible-section collapsed" data-section="physical-description">
+                <h3 class="collapsible-header">
+                    <span class="collapse-icon">▶</span> Physical Description
+                </h3>
+                <div class="collapsible-content" style="display: none;">
+                    <textarea id="characterPhysicalDescription" placeholder="Physical appearance, distinguishing features, etc."></textarea>
+                </div>
+            </div>
+
+            <!-- Background Section (collapsed by default) -->
+            <div class="collapsible-section collapsed" data-section="background">
+                <h3 class="collapsible-header">
+                    <span class="collapse-icon">▶</span> Background
+                </h3>
+                <div class="collapsible-content" style="display: none;">
+                    <textarea id="characterBackground" placeholder="Character history, upbringing, important life events, etc."></textarea>
+                </div>
+            </div>
+
+            <!-- Character Depth Section (collapsed by default) -->
+            <div class="collapsible-section collapsed" data-section="character-depth">
+                <h3 class="collapsible-header">
+                    <span class="collapse-icon">▶</span> Character Depth
+                </h3>
+                <div class="collapsible-content" style="display: none;">
+                    <textarea id="characterPersonalityTraits" placeholder="Personality traits, quirks, habits..."></textarea>
+                    <textarea id="characterMotivations" placeholder="Goals, motivations, what drives this character..."></textarea>
+                    <textarea id="characterFears" placeholder="Fears, weaknesses, vulnerabilities..."></textarea>
+                    <textarea id="characterVoicePatterns" placeholder="Speech patterns, dialects, catchphrases, how they talk..."></textarea>
+                    <textarea id="characterInternalConflict" placeholder="Internal conflicts, personal struggles..."></textarea>
+                    <textarea id="characterExternalConflict" placeholder="External conflicts, obstacles they face..."></textarea>
+                </div>
+            </div>
+
+            <!-- Character Arc Section (collapsed by default) -->
+            <div class="collapsible-section collapsed" data-section="character-arc">
+                <h3 class="collapsible-header">
+                    <span class="collapse-icon">▶</span> Character Arc
+                </h3>
+                <div class="collapsible-content" style="display: none;">
+                    <div id="characterArcPreview" style="padding: 15px; background-color: #111827; border: 1px solid #374151; border-radius: 6px; margin-bottom: 10px;">
+                        <div id="arcPreviewContent" style="color: #9ca3af; font-size: 14px;">
+                            No arc configured yet
+                        </div>
+                    </div>
+                    <button id="openCharacterArcEditor" class="btn-primary" style="width: 100%;">Edit Character Arc</button>
+                </div>
+            </div>
+
+            <!-- Relationships Section (collapsed by default) -->
+            <div class="collapsible-section collapsed" data-section="relationships">
+                <h3 class="collapsible-header">
+                    <span class="collapse-icon">▶</span> Relationships
+                </h3>
+                <div class="collapsible-content" style="display: none;">
+                    <ul id="characterRelationships"></ul>
+                    <p class="help-text" style="color: #6b7280; font-size: 14px;">Relationships are managed from the Book Details page. Add relationships there to see them here.</p>
+                </div>
+            </div>
+
+            <!-- Tags Section -->
+            <h3>Tags</h3>
+            <div id="characterTags"></div>
+            <select id="characterTagSelect" class="tagSelect">
+                <option value="">Select a tag or type a new one</option>
+            </select>
+            <input type="text" id="characterTagInput" placeholder="Add tag">
+            <button id="addTagToCharacter">Add Tag</button>
+
+            <!-- Notes Section -->
+            <h3>Notes</h3>
+            <ul id="characterNotes"></ul>
+            <input type="text" id="newCharacterNoteTitle" placeholder="Note title">
+            <textarea id="newCharacterNoteContent" placeholder="Note content"></textarea>
+            <button id="addNoteToCharacter">Add Note</button>
+
+            <!-- Action Buttons -->
+            <div class="action-buttons">
+                <button class="secondary-action backToBook">Back to Book</button>
+                <button class="primary-action" id="saveCharacter">Save Character</button>
+            </div>
+        </div>
+    
+        <div id="locationDetails" style="display: none;">
+            <h2>Location Details</h2>
+            <input type="text" id="locationName" placeholder="Location name">
+            <textarea id="locationDescription" placeholder="Description"></textarea>
+            <input type="text" id="locationImportance" placeholder="Importance to story">
+            <h3>Tags</h3>
+            <div id="locationTags"></div>
+            <select id="locationTagSelect" class="tagSelect">
+                <option value="">Select a tag or type a new one</option>
+            </select>
+            <input type="text" id="locationTagInput" placeholder="Add tag">
+            <button id="addTagToLocation">Add Tag</button>
+            <h3>Notes</h3>
+            <ul id="locationNotes"></ul>
+            <input type="text" id="newLocationNoteTitle" placeholder="Note title">
+            <textarea id="newLocationNoteContent" placeholder="Note content"></textarea>
+            <button id="addNoteToLocation">Add Note</button>
+
+            <!-- Action Buttons -->
+            <div class="action-buttons">
+                <button class="secondary-action backToBook">Back to Book</button>
+                <button class="primary-action" id="saveLocation">Save Location</button>
+            </div>
+        </div>
+        <div id="plotPointDetails" style="display: none;">
+            <h2>Plot Point Details</h2>
+            <input type="text" id="plotPointTitle" placeholder="Plot point title">
+            <textarea id="plotPointDescription" placeholder="Description"></textarea>
+            <input type="text" id="plotPointCharacters" placeholder="Involved characters">
+            <input type="text" id="plotPointLocation" placeholder="Location">
+            <h3>Tags</h3>
+            <div id="plotPointTags"></div>
+            <select id="plotPointTagSelect" class="tagSelect">
+                <option value="">Select a tag or type a new one</option>
+            </select>
+            <input type="text" id="plotPointTagInput" placeholder="Add tag">
+            <button id="addTagToPlotPoint">Add Tag</button>
+            <h3>Notes</h3>
+            <ul id="plotPointNotes"></ul>
+            <input type="text" id="newPlotPointNoteTitle" placeholder="Note title">
+            <textarea id="newPlotPointNoteContent" placeholder="Note content"></textarea>
+            <button id="addNoteToPlotPoint">Add Note</button>
+
+            <!-- Action Buttons -->
+            <div class="action-buttons">
+                <button class="secondary-action backToBook">Back to Book</button>
+                <button class="primary-action" id="savePlotPoint">Save Plot Point</button>
+            </div>
+        </div>
+    
+        <div id="noteDetails" style="display: none;">
+            <h2 id="noteDetailTitle"></h2>
+            <div id="noteDetailContent"></div>
+
+            <!-- Action Buttons -->
+            <div class="action-buttons">
+                <button class="secondary-action backToBook">Back to Book</button>
+                <button class="primary-action" id="editNote">Edit Note</button>
+            </div>
+        </div>
+    
+        <div id="noteEditor" style="display: none;">
+            <input type="text" id="noteTitle" placeholder="Note Title">
+            <div id="toolbar">
+                <select id="formatBlock">
+                    <option value="p">Paragraph</option>
+                    <option value="h1">Heading 1</option>
+                    <option value="h2">Heading 2</option>
+                    <option value="h3">Heading 3</option>
+                </select>
+                <button id="bold" title="Bold">B</button>
+                <button id="italic" title="Italic">I</button>
+                <button id="underline" title="Underline">U</button>
+                <button id="insertUnorderedList" title="Bullet List">•</button>
+                <button id="insertOrderedList" title="Numbered List">1.</button>
+                <button id="createlink" title="Insert Link">🔗</button>
+            </div>
+            <div id="noteContent" contenteditable="true"></div>
+
+            <!-- Action Buttons -->
+            <div class="action-buttons">
+                <button class="secondary-action" id="cancelNote">Cancel</button>
+                <button class="primary-action" id="saveNote">Save Note</button>
+            </div>
+        </div>
+    
+        <div id="chapterDetails" style="display: none;">
+            <h2>Chapter Details</h2>
+            <input type="text" id="chapterTitle" placeholder="Chapter Title">
+            <textarea id="chapterSummary" placeholder="Chapter Summary"></textarea>
+            <h3>Scenes</h3>
+            <ul id="chapterScenes"></ul>
+            <input type="text" id="newSceneTitle" placeholder="New Scene Title">
+            <button id="addScene">Add Scene</button>
+
+            <!-- Action Buttons -->
+            <div class="action-buttons">
+                <button class="secondary-action backToBook">Back to Book</button>
+                <button class="primary-action" id="saveChapter">Save Chapter</button>
+            </div>
+        </div>
+    
+        <div id="sceneDetails" style="display: none;">
+            <h2>Scene Details</h2>
+            <input type="text" id="sceneTitle" placeholder="Scene title">
+            <textarea id="sceneSummary" placeholder="Scene summary"></textarea>
+            <h3>Characters in this Scene</h3>
+            <div id="sceneCharacters"></div>
+            <select id="addCharacterToScene">
+                <option value="">Add a character</option>
+            </select>
+            <h3>Locations in this Scene</h3>
+            <div id="sceneLocations"></div>
+            <select id="addLocationToScene">
+                <option value="">Add a location</option>
+            </select>
+            <h3>Plot Points in this Scene</h3>
+            <div id="scenePlotPoints"></div>
+            <select id="addPlotPointToScene">
+                <option value="">Add a plot point</option>
+            </select>
+
+            <!-- Action Buttons -->
+            <div class="action-buttons">
+                <button class="secondary-action" id="backToChapterFromScene">Back to Chapter</button>
+                <button class="primary-action" id="saveScene">Save Scene</button>
+            </div>
+        </div>
+    
+        <div id="taggedItems" style="display: none;">
+            <h2>Items tagged with <span id="currentTag"></span></h2>
+            <ul id="taggedItemsList"></ul>
+
+            <!-- Action Buttons -->
+            <div class="action-buttons">
+                <button class="secondary-action backToBook">Back to Book</button>
+            </div>
+        </div>
+    
+        <!-- Character Arc Editor Modal -->
+        <div id="arcEditorModal" class="modal" style="display: none;">
+            <div class="modal-content arc-editor">
+                <!-- Header -->
+                <div class="arc-editor-header">
+                    <div class="arc-character-info">
+                        <img id="arcCharacterThumbnail" class="arc-character-thumbnail" src="" alt="" style="display: none;">
+                        <h2 id="arcCharacterName">Character Arc</h2>
+                    </div>
+                    <button class="modal-close" id="closeArcEditor">&times;</button>
+                </div>
+
+                <!-- Template Selection -->
+                <div class="arc-template-section">
+                    <h3>Arc Template</h3>
+                    <div class="arc-template-buttons" id="arcTemplateButtons">
+                        <!-- Template buttons will be inserted here -->
+                    </div>
+                </div>
+
+                <!-- View Toggle -->
+                <div class="arc-view-toggle">
+                    <button class="arc-view-btn active" data-view="list">List View</button>
+                    <button class="arc-view-btn" data-view="graph">Graph View</button>
+                </div>
+
+                <!-- Main Content Area -->
+                <div class="arc-content">
+                    <!-- List View -->
+                    <div id="arcListView" class="arc-view active">
+                        <div class="arc-beats-container">
+                            <div class="arc-beats-list" id="arcBeatsList">
+                                <!-- Beats will be inserted here -->
+                            </div>
+                            <button class="btn-primary" id="addArcBeat">+ Add Beat</button>
+                        </div>
+
+                        <!-- Beat Detail Panel -->
+                        <div class="arc-beat-detail" id="arcBeatDetail">
+                            <div class="beat-detail-empty">
+                                <p>Select a beat to edit its details</p>
+                            </div>
+                            <div class="beat-detail-content" style="display: none;">
+                                <h3>Beat Details</h3>
+
+                                <label for="beatName">Beat Name:</label>
+                                <input type="text" id="beatName" placeholder="e.g., The Flaw Established">
+
+                                <label for="beatDescription">Description:</label>
+                                <textarea id="beatDescription" rows="3" placeholder="What happens at this beat..."></textarea>
+
+                                <label for="beatEmotionalState">Emotional State (optional):</label>
+                                <input type="text" id="beatEmotionalState" placeholder="e.g., desperate, hopeful, conflicted">
+
+                                <label for="beatYPosition">Emotional Trajectory (0-100):</label>
+                                <input type="range" id="beatYPosition" min="0" max="100" value="50">
+                                <span id="beatYPositionValue">50</span>
+
+                                <!-- Linked Content -->
+                                <h4>Linked Scenes</h4>
+                                <div class="beat-linked-scenes" id="beatLinkedScenes">
+                                    <!-- Scene checkboxes will be inserted here -->
+                                </div>
+
+                                <h4>Linked Chapters</h4>
+                                <div class="beat-linked-chapters" id="beatLinkedChapters">
+                                    <!-- Chapter checkboxes will be inserted here -->
+                                </div>
+
+                                <button class="btn-danger" id="deleteBeat">Delete Beat</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Graph View (Phase 3) -->
+                    <div id="arcGraphView" class="arc-view">
+                        <div class="arc-graph-wrapper">
+                            <div class="arc-graph-labels">
+                                <div class="arc-y-axis-label">Emotional State</div>
+                                <div class="arc-x-axis-label">Story Progression →</div>
+                            </div>
+                            <div id="arcGraphNetwork" class="arc-graph-network"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Footer Actions -->
+                <div class="arc-editor-footer">
+                    <button class="btn-secondary" id="closeArcEditorFooter">Close</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="relationshipGraph" style="display: none;">
+            <h2>Character Relationships</h2>
+            <div id="graphContainer"></div>
+
+            <!-- Action Buttons -->
+            <div class="action-buttons">
+                <button class="secondary-action backToBook">Back to Book</button>
+            </div>
+        </div>
+
+        <script type="module" src="RelationshipGraph.js"></script>
+        <script type="module" src="CharacterArcGraph.js"></script>
+        <script type="module" src="DataManager.js"></script>
+        <script src="Sortable.min.js"></script>
+        <script type="module" src="popup.js"></script>
+        <!-- New modular architecture - loads alongside existing code for testing -->
+        <script type="module" src="src/main.js"></script>
+    </body>
+    </html>
