@@ -23,10 +23,11 @@ Story Codex is a powerful Chrome extension designed to help writers organize and
 ## Usage
 
 1. Click on the Story Codex icon in your Chrome toolbar to open the extension.
-2. Create a new book or select an existing one.
-3. Use the intuitive interface to add and manage your story elements.
-4. Explore the relationship graph to visualize character connections.
-5. Track your writing progress with the word count feature.
+2. Use the popout icon in the header when you want the same workspace in a full browser tab.
+3. Create a new book or select an existing one.
+4. Use the workspace to add and manage your story elements.
+5. Explore the relationship graph to visualize character connections.
+6. Track your writing progress with the word count feature.
 
 ## Development
 

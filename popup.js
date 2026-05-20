@@ -66,6 +66,8 @@ const imageHandler = new ImageHandler();
 
 document.addEventListener('DOMContentLoaded', async function () {
     console.log('=== POPUP.JS LOADED ===');
+    let activeBookSection = 'outline';
+
     const itemDisplayFunctions = {
         character: displayCharacterDetails,
         location: displayLocationDetails,
@@ -97,6 +99,11 @@ document.addEventListener('DOMContentLoaded', async function () {
     }
 
     populateCharacterDropdowns();
+    setupBookTabs();
+    setupContinueCard();
+    setupBookSearch();
+    setupEnterKeyActions();
+    setupPopoutButton();
 
     // Book List Functions
     async function displayBooks(books) {
@@ -138,9 +145,519 @@ document.addEventListener('DOMContentLoaded', async function () {
         displayTags(book.tags);
         displayRelationships(book.relationships);
         displayNotes(book.notes);
-        displayWordCount(book);
+        refreshBookOverview(book);
         populateTagDropdowns(book);
+        setActiveBookSection(activeBookSection);
         showScreen('bookDetails');
+    }
+
+    function setupBookTabs() {
+        document.querySelectorAll('.book-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                const section = tab.dataset.bookTab;
+                if (section) {
+                    clearBookSearch();
+                    setActiveBookSection(section);
+                }
+            });
+        });
+    }
+
+    function setupContinueCard() {
+        const continueCard = document.getElementById('continueWritingCard');
+        if (!continueCard) return;
+
+        continueCard.addEventListener('click', () => {
+            const book = getCurrentBook();
+            const target = getContinueTarget(book);
+            if (!target) return;
+
+            if (target.type === 'scene') {
+                displaySceneDetails(target.item);
+            } else if (target.type === 'chapter') {
+                displayChapterDetails(target.item, book.chapters.indexOf(target.item));
+            }
+        });
+    }
+
+    function setupBookSearch() {
+        const searchInput = document.getElementById('bookSearchInput');
+        const clearButton = document.getElementById('clearBookSearch');
+
+        if (searchInput) {
+            searchInput.addEventListener('input', () => renderBookSearchResults(searchInput.value));
+            searchInput.addEventListener('keydown', event => {
+                if (event.key === 'Escape') {
+                    clearBookSearch();
+                    searchInput.focus();
+                }
+            });
+        }
+
+        if (clearButton) {
+            clearButton.addEventListener('click', clearBookSearch);
+        }
+    }
+
+    function clearBookSearch() {
+        const searchInput = document.getElementById('bookSearchInput');
+        if (searchInput && searchInput.value) {
+            searchInput.value = '';
+        }
+
+        const resultsPanel = document.getElementById('bookSearchResults');
+        const resultsList = document.getElementById('bookSearchResultsList');
+        if (resultsPanel) {
+            resultsPanel.hidden = true;
+        }
+        if (resultsList) {
+            resultsList.innerHTML = '';
+        }
+
+        document.querySelectorAll('.book-section').forEach(section => {
+            section.hidden = section.dataset.bookSection !== activeBookSection;
+        });
+    }
+
+    function renderBookSearchResults(query) {
+        const resultsPanel = document.getElementById('bookSearchResults');
+        const resultsList = document.getElementById('bookSearchResultsList');
+        const book = getCurrentBook();
+
+        if (!resultsPanel || !resultsList || !book) return;
+
+        const normalizedQuery = query.trim().toLowerCase();
+        resultsList.innerHTML = '';
+
+        if (!normalizedQuery) {
+            clearBookSearch();
+            return;
+        }
+
+        document.querySelectorAll('.book-section').forEach(section => {
+            section.hidden = true;
+        });
+        resultsPanel.hidden = false;
+
+        const results = getBookSearchResults(book, normalizedQuery);
+        if (results.length === 0) {
+            addEmptyState(resultsList, `No matches for "${query.trim()}"`);
+            return;
+        }
+
+        results.forEach(result => {
+            const li = document.createElement('li');
+            li.classList.add('search-result-item');
+
+            const title = document.createElement('span');
+            title.classList.add('search-result-title');
+            title.textContent = result.title;
+
+            const meta = document.createElement('span');
+            meta.classList.add('search-result-meta');
+            meta.textContent = result.meta;
+
+            li.appendChild(title);
+            li.appendChild(meta);
+            li.addEventListener('click', () => {
+                clearBookSearch();
+                result.open();
+                focusCurrentScreenHeading();
+            });
+            resultsList.appendChild(li);
+        });
+    }
+
+    function getBookSearchResults(book, normalizedQuery) {
+        const results = [];
+        const matches = (...values) => values
+            .filter(Boolean)
+            .some(value => String(value).toLowerCase().includes(normalizedQuery));
+
+        const addResult = (title, meta, open, ...searchValues) => {
+            if (matches(title, meta, ...searchValues)) {
+                results.push({ title, meta, open });
+            }
+        };
+
+        (book.chapters || []).forEach((chapter, index) => {
+            addResult(
+                chapter.title || 'Untitled chapter',
+                'Chapter',
+                () => displayChapterDetails(chapter, index),
+                chapter.summary
+            );
+        });
+
+        (book.scenes || []).forEach(scene => {
+            const chapter = scene.id ? findChapterBySceneId(book, scene.id) : null;
+            addResult(
+                scene.title || 'Untitled scene',
+                chapter ? `Scene in ${chapter.title || 'Untitled chapter'}` : 'Scene',
+                () => displaySceneDetails(scene),
+                scene.summary
+            );
+        });
+
+        (book.characters || []).forEach(character => {
+            addResult(
+                character.name || 'Unnamed character',
+                'Character',
+                () => showItemDetails('character', character),
+                character.nickname,
+                character.description,
+                character.role,
+                character.tags?.join(' ')
+            );
+        });
+
+        (book.locations || []).forEach(location => {
+            addResult(
+                location.name || 'Unnamed location',
+                'Location',
+                () => showItemDetails('location', location),
+                location.description,
+                location.importance,
+                location.tags?.join(' ')
+            );
+        });
+
+        (book.plotPoints || []).forEach(plotPoint => {
+            addResult(
+                plotPoint.title || 'Untitled plot point',
+                'Plot point',
+                () => showItemDetails('plotPoint', plotPoint),
+                plotPoint.description,
+                plotPoint.characters,
+                plotPoint.location,
+                plotPoint.tags?.join(' ')
+            );
+        });
+
+        (book.notes || []).forEach(note => {
+            addResult(
+                note.title || 'Untitled note',
+                'Note',
+                () => showItemDetails('note', note),
+                stripHtml(note.content || '')
+            );
+        });
+
+        return results.slice(0, 20);
+    }
+
+    function stripHtml(value) {
+        const div = document.createElement('div');
+        div.innerHTML = value;
+        return div.textContent || div.innerText || '';
+    }
+
+    function setupEnterKeyActions() {
+        const inputButtonPairs = [
+            ['newBookName', 'addBook'],
+            ['newChapterTitle', 'addChapter'],
+            ['newCharacterName', 'addCharacter'],
+            ['newLocationName', 'addLocation'],
+            ['newPlotPoint', 'addPlotPoint'],
+            ['newTagName', 'addTag'],
+            ['newNoteTitle', 'addNote'],
+            ['newSceneTitle', 'addScene']
+        ];
+
+        inputButtonPairs.forEach(([inputId, buttonId]) => {
+            const input = document.getElementById(inputId);
+            const button = document.getElementById(buttonId);
+            if (!input || !button) return;
+
+            input.addEventListener('keydown', event => {
+                if (event.key === 'Enter') {
+                    event.preventDefault();
+                    button.click();
+                }
+            });
+        });
+    }
+
+    function setupPopoutButton() {
+        const popoutButton = document.getElementById('openPopout');
+        if (!popoutButton) return;
+
+        popoutButton.addEventListener('click', async () => {
+            popoutButton.disabled = true;
+            try {
+                await persistCurrentViewBeforePopout();
+                const url = chrome.runtime.getURL('popup.html');
+
+                if (chrome.tabs?.create) {
+                    await chrome.tabs.create({ url });
+                } else {
+                    window.open(url, '_blank', 'noopener');
+                }
+
+                if (window.innerWidth < 700) {
+                    window.close();
+                }
+            } catch (error) {
+                console.error('Unable to open Story Codex in a tab:', error);
+                popoutButton.disabled = false;
+            }
+        });
+    }
+
+    function getVisibleScreenId() {
+        const screens = [
+            'bookList',
+            'bookDetails',
+            'characterDetails',
+            'locationDetails',
+            'plotPointDetails',
+            'noteDetails',
+            'noteEditor',
+            'chapterDetails',
+            'sceneDetails',
+            'taggedItems',
+            'relationshipGraph'
+        ];
+
+        return screens.find(screen => {
+            const element = document.getElementById(screen);
+            return element && element.style.display !== 'none';
+        }) || getCurrentScreen();
+    }
+
+    function inputValue(id) {
+        return document.getElementById(id)?.value || '';
+    }
+
+    function tagValues(containerId) {
+        const container = document.getElementById(containerId);
+        if (!container) return [];
+
+        return Array.from(container.children)
+            .map(element => element.textContent.replace('Ã—', '').trim())
+            .filter(Boolean);
+    }
+
+    async function persistCurrentViewBeforePopout() {
+        const app = getApp();
+        if (!app) return;
+
+        const visibleScreen = getVisibleScreenId();
+        const book = getCurrentBook();
+        const item = getCurrentItem();
+        const itemType = getCurrentItemType();
+        let shouldSaveBook = false;
+
+        if (visibleScreen === 'bookDetails' && book) {
+            const newWordCount = parseInt(inputValue('newWordCount'), 10);
+            const newTargetWordCount = parseInt(inputValue('newTargetWordCount'), 10);
+
+            if (!Number.isNaN(newWordCount)) {
+                book.wordCount = newWordCount;
+                shouldSaveBook = true;
+            }
+            if (!Number.isNaN(newTargetWordCount)) {
+                book.targetWordCount = newTargetWordCount;
+                shouldSaveBook = true;
+            }
+        }
+
+        if (visibleScreen === 'characterDetails' && item && itemType === 'character') {
+            app.itemService.updateItem(item, {
+                name: inputValue('characterName'),
+                nickname: inputValue('characterNickname'),
+                description: inputValue('characterDescription'),
+                scene: inputValue('characterScene'),
+                type: inputValue('characterType'),
+                age: inputValue('characterAge'),
+                occupation: inputValue('characterOccupation'),
+                pronouns: inputValue('characterPronouns'),
+                role: inputValue('characterRole'),
+                aliases: inputValue('characterAliases'),
+                status: inputValue('characterStatus'),
+                physicalDescription: inputValue('characterPhysicalDescription'),
+                background: inputValue('characterBackground'),
+                personalityTraits: inputValue('characterPersonalityTraits'),
+                motivations: inputValue('characterMotivations'),
+                fears: inputValue('characterFears'),
+                voicePatterns: inputValue('characterVoicePatterns'),
+                internalConflict: inputValue('characterInternalConflict'),
+                externalConflict: inputValue('characterExternalConflict')
+            });
+            shouldSaveBook = true;
+        }
+
+        if (visibleScreen === 'locationDetails' && item && itemType === 'location') {
+            app.itemService.updateItem(item, {
+                name: inputValue('locationName'),
+                description: inputValue('locationDescription'),
+                importance: inputValue('locationImportance')
+            });
+            shouldSaveBook = true;
+        }
+
+        if (visibleScreen === 'plotPointDetails' && item && itemType === 'plotPoint') {
+            app.itemService.updateItem(item, {
+                title: inputValue('plotPointTitle'),
+                description: inputValue('plotPointDescription'),
+                characters: inputValue('plotPointCharacters'),
+                location: inputValue('plotPointLocation')
+            });
+            shouldSaveBook = true;
+        }
+
+        if (visibleScreen === 'chapterDetails' && item && itemType === 'chapter') {
+            app.itemService.updateItem(item, {
+                title: inputValue('chapterTitle'),
+                summary: inputValue('chapterSummary')
+            });
+            shouldSaveBook = true;
+        }
+
+        if (visibleScreen === 'sceneDetails' && item && itemType === 'scene') {
+            app.itemService.updateItem(item, {
+                title: inputValue('sceneTitle'),
+                summary: inputValue('sceneSummary'),
+                characters: tagValues('sceneCharacters'),
+                locations: tagValues('sceneLocations'),
+                plotPoints: tagValues('scenePlotPoints')
+            });
+            shouldSaveBook = true;
+        }
+
+        if (visibleScreen === 'noteEditor' && item && itemType === 'note') {
+            item.title = inputValue('noteTitle');
+            item.content = document.getElementById('noteContent')?.innerHTML || '';
+            shouldSaveBook = true;
+        }
+
+        if (shouldSaveBook && book) {
+            await app.bookService.updateBook(book);
+        }
+
+        await app.stateManager.setState({
+            currentBook: book || null,
+            currentItem: item || null,
+            currentItemType: itemType || null,
+            currentScreen: visibleScreen
+        });
+    }
+
+    function focusCurrentScreenHeading() {
+        requestAnimationFrame(() => {
+            const visibleScreen = [
+                'bookDetails',
+                'characterDetails',
+                'locationDetails',
+                'plotPointDetails',
+                'noteDetails',
+                'chapterDetails',
+                'sceneDetails'
+            ]
+                .map(id => document.getElementById(id))
+                .find(element => element && element.style.display !== 'none');
+
+            const heading = visibleScreen?.querySelector('h1, h2');
+            if (heading) {
+                heading.setAttribute('tabindex', '-1');
+                heading.focus();
+            }
+        });
+    }
+
+    function setActiveBookSection(sectionName) {
+        activeBookSection = sectionName;
+
+        document.querySelectorAll('.book-tab').forEach(tab => {
+            const isActive = tab.dataset.bookTab === sectionName;
+            tab.classList.toggle('active', isActive);
+            tab.setAttribute('aria-selected', String(isActive));
+            tab.setAttribute('tabindex', isActive ? '0' : '-1');
+        });
+
+        document.querySelectorAll('.book-section').forEach(section => {
+            section.hidden = section.dataset.bookSection !== sectionName;
+        });
+    }
+
+    function updateBookDashboard(book) {
+        const wordCount = Number(book.wordCount) || 0;
+        const targetWordCount = Number(book.targetWordCount) || 0;
+        const progress = targetWordCount > 0 ? Math.min(100, Math.round((wordCount / targetWordCount) * 100)) : 0;
+
+        const dashboardValues = {
+            dashboardWordCount: `${wordCount.toLocaleString()} / ${targetWordCount.toLocaleString()} words`,
+            dashboardProgressPercent: `${progress}%`,
+            dashboardChapterCount: book.chapters?.length || 0,
+            dashboardSceneCount: book.scenes?.length || 0,
+            dashboardCharacterCount: book.characters?.length || 0,
+            dashboardNoteCount: book.notes?.length || 0
+        };
+
+        Object.entries(dashboardValues).forEach(([id, value]) => {
+            const element = document.getElementById(id);
+            if (element) {
+                element.textContent = value;
+            }
+        });
+
+        const dashboardProgressBar = document.getElementById('dashboardProgressBar');
+        if (dashboardProgressBar) {
+            dashboardProgressBar.style.width = `${progress}%`;
+        }
+
+        const continueTitle = document.getElementById('continueWritingTitle');
+        const continueMeta = document.getElementById('continueWritingMeta');
+        const continueCard = document.getElementById('continueWritingCard');
+        const target = getContinueTarget(book);
+
+        if (continueTitle && continueMeta) {
+            if (target?.type === 'scene') {
+                const chapter = findChapterBySceneId(book, target.item.id);
+                continueTitle.textContent = target.item.title || 'Untitled scene';
+                continueMeta.textContent = chapter
+                    ? `Most recently added scene in ${chapter.title || 'Untitled chapter'}`
+                    : 'Most recently added scene';
+            } else if (target?.type === 'chapter') {
+                continueTitle.textContent = target.item.title || 'Untitled chapter';
+                continueMeta.textContent = 'Add a scene to this chapter';
+            } else {
+                continueTitle.textContent = 'No scenes yet';
+                continueMeta.textContent = 'Create a chapter and add your first scene.';
+            }
+        }
+
+        if (continueCard) {
+            continueCard.disabled = !target;
+        }
+    }
+
+    function getContinueTarget(book) {
+        if (!book) return null;
+
+        const latestScene = book.scenes && book.scenes.length > 0
+            ? book.scenes[book.scenes.length - 1]
+            : null;
+
+        if (latestScene) {
+            return { type: 'scene', item: latestScene };
+        }
+
+        const latestChapter = book.chapters && book.chapters.length > 0
+            ? book.chapters[book.chapters.length - 1]
+            : null;
+
+        if (latestChapter) {
+            return { type: 'chapter', item: latestChapter };
+        }
+
+        return null;
+    }
+
+    function refreshBookOverview(book) {
+        if (!book) return;
+        updateBookDashboard(book);
+        displayWordCount(book);
     }
 
     function displayChapters(chapters) {
@@ -151,6 +668,7 @@ document.addEventListener('DOMContentLoaded', async function () {
             app.ItemTypes.CHAPTER,
             (chapter, index) => showItemDetails('chapter', chapter, index)
         );
+        addEmptyStateIfNeeded('chapters', chapters, 'No chapters yet');
     }
 
     function displayCharacters(characters) {
@@ -164,6 +682,7 @@ document.addEventListener('DOMContentLoaded', async function () {
         container.innerHTML = '';
 
         if (!characters || characters.length === 0) {
+            addEmptyState(container, 'No characters yet');
             return;
         }
 
@@ -201,6 +720,7 @@ document.addEventListener('DOMContentLoaded', async function () {
             app.ItemTypes.LOCATION,
             (location, _index) => showItemDetails('location', location)
         );
+        addEmptyStateIfNeeded('locations', locations, 'No locations yet');
     }
     
     function displayPlotPoints(plotPoints) {
@@ -211,6 +731,7 @@ document.addEventListener('DOMContentLoaded', async function () {
             app.ItemTypes.PLOT_POINT,
             (plotPoint, _index) => showItemDetails('plotPoint', plotPoint)
         );
+        addEmptyStateIfNeeded('plotPoints', plotPoints, 'No plot points yet');
     }
     
     function displayTags(tags) {
@@ -269,7 +790,8 @@ document.addEventListener('DOMContentLoaded', async function () {
         }
 
         if (!notes || notes.length === 0) {
-            noteList.innerHTML = '<li>No notes yet</li>';
+            noteList.innerHTML = '';
+            addEmptyState(noteList, 'No notes yet');
             return;
         }
 
@@ -286,6 +808,22 @@ document.addEventListener('DOMContentLoaded', async function () {
                 }
             }
         );
+    }
+
+    function addEmptyStateIfNeeded(containerId, items, message) {
+        if (items && items.length > 0) return;
+        const container = document.getElementById(containerId);
+        if (container) {
+            addEmptyState(container, message);
+        }
+    }
+
+    function addEmptyState(container, message) {
+        container.innerHTML = '';
+        const li = document.createElement('li');
+        li.classList.add('empty-state');
+        li.textContent = message;
+        container.appendChild(li);
     }
     
     function displayWordCount(book) {
@@ -1004,6 +1542,7 @@ if (saveCharacterButton) {
             const book = getCurrentBook();
             updateBook(getBooks(), book);
             displayCharacters(book.characters);
+            refreshBookOverview(book);
 
             // Clear current item and update screen in state
             await app.stateManager.setState({
@@ -1198,6 +1737,7 @@ if (saveLocationButton) {
             const book = getCurrentBook();
             updateBook(getBooks(), book);
             displayLocations(book.locations);
+            refreshBookOverview(book);
 
             // Clear current item and update screen in state
             await app.stateManager.setState({
@@ -1229,6 +1769,7 @@ if (savePlotPointButton) {
             const book = getCurrentBook();
             updateBook(getBooks(), book);
             displayPlotPoints(book.plotPoints);
+            refreshBookOverview(book);
 
             // Clear current item and update screen in state
             await app.stateManager.setState({
@@ -1258,6 +1799,7 @@ if (saveChapterButton) {
             const book = getCurrentBook();
             updateBook(getBooks(), book);
             displayChapters(book.chapters);
+            refreshBookOverview(book);
 
             // Clear current item and update screen in state
             await app.stateManager.setState({
@@ -1281,6 +1823,7 @@ if (saveSceneButton) {
             const book = getCurrentBook();
             if (saveSceneDetails()) {
                 console.log('Scene saved successfully');
+                refreshBookOverview(book);
                 // Navigate back to Chapter Details
                 const chapter = findChapterBySceneId(book, scene.id);
                 if (chapter) {
@@ -1336,7 +1879,7 @@ if (updateWordCountButton) {
                 }
 
                 updateBook(getBooks(), book);
-                displayWordCount(book);
+                refreshBookOverview(book);
                 newWordCountInput.value = '';
                 newTargetWordCountInput.value = '';
             }
@@ -1423,6 +1966,7 @@ function addCharacter(book, characterName) {
     updateBook(getBooks(), book);
     displayCharacters(book.characters);
     populateCharacterDropdowns();
+    refreshBookOverview(book);
     return newCharacter;
 }
 
@@ -1437,6 +1981,7 @@ function addLocation(book, locationName) {
 
     updateBook(getBooks(), book);
     displayLocations(book.locations);
+    refreshBookOverview(book);
     return newLocation;
 }
 
@@ -1451,6 +1996,7 @@ function addPlotPoint(book, plotPointTitle) {
 
     updateBook(getBooks(), book);
     displayPlotPoints(book.plotPoints);
+    refreshBookOverview(book);
     return newPlotPoint;
 }
 
@@ -1495,6 +2041,7 @@ function addNote(book, title, content = '') {
     console.log('Book updated with new note');
 
     displayNotes(book.notes);
+    refreshBookOverview(book);
     console.log('Notes display updated');
 
     return newNote;
@@ -1511,6 +2058,7 @@ function addChapter(book, chapterTitle) {
 
     updateBook(getBooks(), book);
     displayChapters(book.chapters);
+    refreshBookOverview(book);
     return newChapter;
 }
 
@@ -1536,6 +2084,7 @@ function addScene(book, chapterIndex, sceneTitle) {
     book.chapters[chapterIndex].scenes.push(newScene.id);
 
     updateBook(getBooks(), book);
+    refreshBookOverview(book);
     displayChapterDetails(book.chapters[chapterIndex], chapterIndex);
     return newScene;
 }
@@ -1586,6 +2135,7 @@ function saveSceneDetails() {
         console.log('Updated scene:', scene);
 
         updateBook(getBooks(), book);
+        refreshBookOverview(book);
         console.log('Book updated with new scene details');
 
         return true;
@@ -1661,6 +2211,7 @@ async function saveNote(updatedNote) {
     }
     updateBook(getBooks(), book);
     displayNotes(book.notes);
+    refreshBookOverview(book);
 
     // Clear current item and update screen in state
     const app = getApp();

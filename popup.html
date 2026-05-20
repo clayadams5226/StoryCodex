@@ -4,11 +4,29 @@
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Story Codex</title>
-        <link rel="stylesheet" href="styles.css">
         <link rel="stylesheet" href="vis.min.css">
+        <link rel="stylesheet" href="styles.css">
         <script src="vis.min.js"></script>
     </head>
-    <body>
+    <body class="workspace-body">
+        <header class="app-header">
+            <div class="brand-lockup">
+                <img src="icon48.png" alt="" class="brand-icon">
+                <div>
+                    <div class="brand-name">Story Codex</div>
+                    <div class="brand-subtitle">Writing workspace</div>
+                </div>
+            </div>
+            <button type="button" id="openPopout" class="icon-button app-popout-button" aria-label="Open Story Codex in a tab" title="Open in tab">
+                <svg aria-hidden="true" viewBox="0 0 24 24" focusable="false">
+                    <path d="M14 4h6v6"></path>
+                    <path d="M20 4l-9 9"></path>
+                    <path d="M20 14v4a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h4"></path>
+                </svg>
+            </button>
+        </header>
+
+        <main class="app-shell">
         <div id="bookList">
             <h1>My Books</h1>
             <ul id="books"></ul>
@@ -21,35 +39,91 @@
         <div id="bookDetails" style="display: none;">
             <h2 id="bookTitle"></h2>
 
-            <div id="chaptersSection">
+            <div class="book-dashboard" aria-label="Book overview">
+                <div class="dashboard-progress">
+                    <div>
+                        <span class="dashboard-label">Draft Progress</span>
+                        <strong id="dashboardWordCount">0 / 0 words</strong>
+                    </div>
+                    <span id="dashboardProgressPercent">0%</span>
+                    <div class="dashboard-progress-track">
+                        <div id="dashboardProgressBar"></div>
+                    </div>
+                </div>
+                <div class="dashboard-stats">
+                    <div class="dashboard-stat">
+                        <strong id="dashboardChapterCount">0</strong>
+                        <span>Chapters</span>
+                    </div>
+                    <div class="dashboard-stat">
+                        <strong id="dashboardSceneCount">0</strong>
+                        <span>Scenes</span>
+                    </div>
+                    <div class="dashboard-stat">
+                        <strong id="dashboardCharacterCount">0</strong>
+                        <span>Cast</span>
+                    </div>
+                    <div class="dashboard-stat">
+                        <strong id="dashboardNoteCount">0</strong>
+                        <span>Notes</span>
+                    </div>
+                </div>
+                <button type="button" class="continue-card" id="continueWritingCard" disabled>
+                    <span class="dashboard-label">Continue</span>
+                    <strong id="continueWritingTitle">No scenes yet</strong>
+                    <span id="continueWritingMeta">Create a chapter and add your first scene.</span>
+                </button>
+            </div>
+
+            <nav class="book-tabs" aria-label="Book workspace sections" role="tablist">
+                <button type="button" class="book-tab active" data-book-tab="outline" role="tab" aria-selected="true" aria-controls="chaptersSection">Outline</button>
+                <button type="button" class="book-tab" data-book-tab="cast" role="tab" aria-selected="false" aria-controls="charactersSection">Cast</button>
+                <button type="button" class="book-tab" data-book-tab="world" role="tab" aria-selected="false" aria-controls="locationsSection">World</button>
+                <button type="button" class="book-tab" data-book-tab="plot" role="tab" aria-selected="false" aria-controls="plotPointsSection">Plot</button>
+                <button type="button" class="book-tab" data-book-tab="notes" role="tab" aria-selected="false" aria-controls="notesSection">Notes</button>
+                <button type="button" class="book-tab" data-book-tab="more" role="tab" aria-selected="false" aria-controls="tagsSection">More</button>
+            </nav>
+
+            <div class="book-search-panel">
+                <div class="book-search-controls">
+                    <input type="search" id="bookSearchInput" placeholder="Search characters, scenes, notes..." aria-label="Search this book">
+                    <button type="button" id="clearBookSearch" class="secondary-action">Clear</button>
+                </div>
+                <div id="bookSearchResults" class="book-search-results" hidden aria-live="polite">
+                    <h3>Search Results</h3>
+                    <ul id="bookSearchResultsList"></ul>
+                </div>
+            </div>
+
+            <div id="chaptersSection" class="book-section" data-book-section="outline" role="tabpanel">
                 <h3>Chapters</h3>
                 <ul id="chapters"></ul>
                 <input type="text" id="newChapterTitle" placeholder="New chapter title">
                 <button id="addChapter">Add Chapter</button>
             </div>
     
-            <div id="charactersSection">
+            <div id="charactersSection" class="book-section" data-book-section="cast" role="tabpanel">
                 <h3>Characters</h3>
                 <ul id="characters"></ul>
                 <input type="text" id="newCharacterName" placeholder="New character name">
                 <button id="addCharacter">Add Character</button>
             </div>
     
-            <div id="locationsSection">
+            <div id="locationsSection" class="book-section" data-book-section="world" role="tabpanel">
                 <h3>Locations</h3>
                 <ul id="locations"></ul>
                 <input type="text" id="newLocationName" placeholder="New location name">
                 <button id="addLocation">Add Location</button>
             </div>
     
-            <div id="plotPointsSection">
+            <div id="plotPointsSection" class="book-section" data-book-section="plot" role="tabpanel">
                 <h3>Plot Points</h3>
                 <ul id="plotPoints"></ul>
                 <input type="text" id="newPlotPoint" placeholder="New plot point">
                 <button id="addPlotPoint">Add Plot Point</button>
             </div>
     
-            <div id="tagsSection">
+            <div id="tagsSection" class="book-section" data-book-section="more" role="tabpanel">
                 <h3>Tags</h3>
                 <div id="tags"></div>
                 <select id="tagSelect" class="tagSelect">
@@ -59,7 +133,7 @@
                 <button id="addTag">Add Tag</button>
             </div>
     
-            <div id="relationshipsSection">
+            <div id="relationshipsSection" class="book-section" data-book-section="more" role="tabpanel">
                 <h3>Relationships</h3>
                 <select id="character1">
                     <option value="">Select character 1</option>
@@ -83,22 +157,22 @@
                 <button id="viewRelationshipGraph">View Relationship Graph</button>
             </div>
     
-            <div id="notesSection">
+            <div id="notesSection" class="book-section" data-book-section="notes" role="tabpanel">
                 <h3>Notes</h3>
                 <ul id="notes"></ul>
                 <input type="text" id="newNoteTitle" placeholder="Note title">
                 <button id="addNote">Add Note</button>
             </div>
     
-            <div id="tagsOverviewSection">
+            <div id="tagsOverviewSection" class="book-section" data-book-section="more" role="tabpanel">
                 <h3>All Tags</h3>
                 <div id="allTags"></div>
             </div>
     
-            <div id="wordCountSection">
+            <div id="wordCountSection" class="book-section" data-book-section="outline" role="tabpanel">
                 <h3>Word Count</h3>
                 <div id="wordCountDisplay"></div>
-                <div id="progressBar"></div>
+                <div id="progressBarContainer"><div id="progressBar"></div></div>
                 <input type="number" id="newWordCount" placeholder="Update word count">
                 <input type="number" id="newTargetWordCount" placeholder="Update target word count">
                 <button id="updateWordCount">Update</button>
@@ -487,6 +561,7 @@
                 <button class="secondary-action backToBook">Back to Book</button>
             </div>
         </div>
+        </main>
 
         <script type="module" src="RelationshipGraph.js"></script>
         <script type="module" src="CharacterArcGraph.js"></script>

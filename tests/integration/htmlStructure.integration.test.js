@@ -15,10 +15,29 @@ const __dirname = path.dirname(__filename);
 
 describe('HTML Structure Integration Tests', () => {
   let html;
+  let manifest;
 
   beforeEach(() => {
     const htmlPath = path.join(__dirname, '../../popup.html');
+    const manifestPath = path.join(__dirname, '../../manifest.json');
     html = fs.readFileSync(htmlPath, 'utf-8');
+    manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf-8'));
+  });
+
+  describe('Popup Manifest Integration', () => {
+    test('should register popup.html as the default extension popup', () => {
+      expect(manifest.action.default_popup).toBe('popup.html');
+    });
+
+    test('should not require the side panel permission', () => {
+      expect(manifest.permissions).not.toContain('sidePanel');
+    });
+
+    test('popup should include a popout control for opening the app in a tab', () => {
+      expect(html).toContain('id="openPopout"');
+      expect(html).toContain('aria-label="Open Story Codex in a tab"');
+      expect(html).toContain('popup.js');
+    });
   });
 
   describe('Graph Container Elements', () => {
