@@ -1,9 +1,5 @@
 import { showScreen, updateBook, populateTagDropdowns, syncBookTagsFromItems } from './utils.js';
 import { RelationshipGraph } from './RelationshipGraph.js';
-import { CharacterArcGraph } from './CharacterArcGraph.js';
-import { DataManager } from './DataManager.js';
-import { RichTextEditor } from './RichTextEditor.js';
-import { ImageHandler } from './ImageHandler.js';
 import {
     findSceneById,
     findChapterBySceneId,
@@ -11,7 +7,10 @@ import {
     addSceneToChapter as addSceneIdToChapter,
     reorderSceneInChapter
 } from './src/utils/idHelpers.js';
-import { ARC_TEMPLATES, getArcTemplateKeys } from './src/constants/arcTemplates.js';
+import { waitForStoryCodexApp } from './src/app/storyCodexGlobal.js';
+import { CharacterArcEditor } from './src/features/characterArc/CharacterArcEditor.js';
+import { getVisibleScreenId, inputValue, stripHtml } from './src/ui/domHelpers.js';
+import { observeCollapsibleSections } from './src/ui/collapsibleSections.js';
 
 // Get reference to the modular app (initialized by main.js)
 // Wait for it to be available
@@ -60,10 +59,6 @@ async function setCurrentScreen(screen) {
     if (app) await app.stateManager.setCurrentScreen(screen);
 }
 
-const dataManager = new DataManager();
-const richTextEditor = new RichTextEditor('noteEditor');
-const imageHandler = new ImageHandler();
-
 document.addEventListener('DOMContentLoaded', async function () {
     console.log('=== POPUP.JS LOADED ===');
     let activeBookSection = 'outline';
@@ -77,12 +72,17 @@ document.addEventListener('DOMContentLoaded', async function () {
         scene: displaySceneDetails,
     };
 
-    // Wait for main.js to initialize
-    while (!getApp()) {
-        await new Promise(resolve => setTimeout(resolve, 10));
-    }
-
-    const app = getApp();
+    const app = await waitForStoryCodexApp();
+    const dataManager = app.dataManager;
+    const richTextEditor = app.richTextEditor;
+    const imageHandler = app.imageHandler;
+    const arcEditor = new CharacterArcEditor({
+        app,
+        getCurrentBook,
+        getBooks,
+        updateBook
+    });
+    arcEditor.initialize();
 
     // Display initial UI
     displayBooks(getBooks());
@@ -347,12 +347,6 @@ document.addEventListener('DOMContentLoaded', async function () {
         return results.slice(0, 20);
     }
 
-    function stripHtml(value) {
-        const div = document.createElement('div');
-        div.innerHTML = value;
-        return div.textContent || div.innerText || '';
-    }
-
     function setupEnterKeyActions() {
         const inputButtonPairs = [
             ['newBookName', 'addBook'],
@@ -405,31 +399,6 @@ document.addEventListener('DOMContentLoaded', async function () {
         });
     }
 
-    function getVisibleScreenId() {
-        const screens = [
-            'bookList',
-            'bookDetails',
-            'characterDetails',
-            'locationDetails',
-            'plotPointDetails',
-            'noteDetails',
-            'noteEditor',
-            'chapterDetails',
-            'sceneDetails',
-            'taggedItems',
-            'relationshipGraph'
-        ];
-
-        return screens.find(screen => {
-            const element = document.getElementById(screen);
-            return element && element.style.display !== 'none';
-        }) || getCurrentScreen();
-    }
-
-    function inputValue(id) {
-        return document.getElementById(id)?.value || '';
-    }
-
     function tagValues(containerId) {
         const container = document.getElementById(containerId);
         if (!container) return [];
@@ -443,7 +412,7 @@ document.addEventListener('DOMContentLoaded', async function () {
         const app = getApp();
         if (!app) return;
 
-        const visibleScreen = getVisibleScreenId();
+        const visibleScreen = getVisibleScreenId(getCurrentScreen());
         const book = getCurrentBook();
         const item = getCurrentItem();
         const itemType = getCurrentItemType();
@@ -948,7 +917,7 @@ document.addEventListener('DOMContentLoaded', async function () {
         if (externalConflictInput) externalConflictInput.value = character.externalConflict || '';
 
         // NEW: Character Arc Preview
-        updateCharacterArcPreview(character);
+        arcEditor.updatePreview(character);
 
         // Existing functionality
         displayRelationshipsForCharacter(character);
@@ -1652,77 +1621,7 @@ if (removePictureButton) {
     });
 }
 
-// Collapsible Section Toggle Functionality
-async function initializeCollapsibleSections() {
-    // Load saved collapse state from storage
-    const result = await chrome.storage.sync.get('collapsibleSectionsState');
-    const savedState = result.collapsibleSectionsState || {};
-
-    const collapsibleSections = document.querySelectorAll('.collapsible-section');
-
-    collapsibleSections.forEach(section => {
-        const header = section.querySelector('.collapsible-header');
-        const content = section.querySelector('.collapsible-content');
-        const icon = header.querySelector('.collapse-icon');
-        const sectionName = section.getAttribute('data-section');
-
-        if (!header || !content || !icon) return;
-
-        // Apply saved state or default (basic-details expanded, others collapsed)
-        const isCollapsed = savedState[sectionName] !== undefined
-            ? savedState[sectionName]
-            : sectionName !== 'basic-details';
-
-        if (isCollapsed) {
-            section.classList.add('collapsed');
-            content.style.display = 'none';
-            icon.textContent = '▶';
-        } else {
-            section.classList.remove('collapsed');
-            content.style.display = 'block';
-            icon.textContent = '▼';
-        }
-
-        // Add click handler
-        header.addEventListener('click', async function () {
-            const isCurrentlyCollapsed = section.classList.contains('collapsed');
-
-            if (isCurrentlyCollapsed) {
-                // Expand
-                section.classList.remove('collapsed');
-                content.style.display = 'block';
-                icon.textContent = '▼';
-            } else {
-                // Collapse
-                section.classList.add('collapsed');
-                content.style.display = 'none';
-                icon.textContent = '▶';
-            }
-
-            // Save state globally
-            savedState[sectionName] = !isCurrentlyCollapsed;
-            await chrome.storage.sync.set({ collapsibleSectionsState: savedState });
-        });
-    });
-}
-
-// Initialize collapsible sections when character details are shown
-const characterDetailsObserver = new MutationObserver((mutations) => {
-    mutations.forEach((mutation) => {
-        if (mutation.target.id === 'characterDetails' &&
-            mutation.target.style.display !== 'none') {
-            initializeCollapsibleSections();
-        }
-    });
-});
-
-const characterDetailsElement = document.getElementById('characterDetails');
-if (characterDetailsElement) {
-    characterDetailsObserver.observe(characterDetailsElement, {
-        attributes: true,
-        attributeFilter: ['style']
-    });
-}
+observeCollapsibleSections();
 
 const saveLocationButton = document.getElementById('saveLocation');
 if (saveLocationButton) {
@@ -2326,569 +2225,4 @@ richTextEditor.initializeEventListeners();
 
     // ... (other utility functions)
 
-    // ==================== Character Arc Editor ====================
-    console.log('=== ARC EDITOR CODE SECTION REACHED ===');
-
-    // Arc Editor State
-    let currentEditingCharacter = null;
-    let currentSelectedBeat = null;
-    let arcSaveDebounceTimer = null;
-    let arcGraphInstance = null; // CharacterArcGraph instance
-
-    // Open Arc Editor
-    function openArcEditor(character) {
-        if (!character) return;
-
-        currentEditingCharacter = character;
-        currentSelectedBeat = null;
-
-        // Set character info in header
-        document.getElementById('arcCharacterName').textContent = `${character.name} - Character Arc`;
-
-        const thumbnail = document.getElementById('arcCharacterThumbnail');
-        if (character.picture) {
-            thumbnail.src = character.picture;
-            thumbnail.style.display = 'block';
-        } else {
-            thumbnail.style.display = 'none';
-        }
-
-        // Ensure character has arc structure
-        if (!character.characterArc) {
-            character.characterArc = {
-                templateType: '',
-                beats: []
-            };
-        }
-
-        // Render template buttons
-        renderTemplateButtons();
-
-        // Render beat list
-        renderBeatList();
-
-        // Clear beat detail panel
-        showBeatDetailEmpty();
-
-        // Show modal and lock body scroll
-        document.getElementById('arcEditorModal').style.display = 'block';
-        document.body.classList.add('modal-open');
-    }
-
-    // Close Arc Editor
-    function closeArcEditor() {
-        document.getElementById('arcEditorModal').style.display = 'none';
-        document.body.classList.remove('modal-open');
-        currentEditingCharacter = null;
-        currentSelectedBeat = null;
-
-        // Clear any pending save
-        if (arcSaveDebounceTimer) {
-            clearTimeout(arcSaveDebounceTimer);
-            arcSaveDebounceTimer = null;
-        }
-
-        // Destroy graph instance to prevent memory leaks
-        if (arcGraphInstance) {
-            arcGraphInstance.destroy();
-            arcGraphInstance = null;
-        }
-    }
-
-    // Render Template Buttons
-    function renderTemplateButtons() {
-        const container = document.getElementById('arcTemplateButtons');
-        if (!container) {
-            console.error('Arc template buttons container not found');
-            return;
-        }
-
-        container.innerHTML = '';
-
-        const templateKeys = getArcTemplateKeys();
-        console.log('Rendering templates:', templateKeys);
-
-        templateKeys.forEach(key => {
-            const template = ARC_TEMPLATES[key];
-            const button = document.createElement('button');
-            button.className = 'arc-template-btn';
-            button.textContent = template.name;
-            button.style.borderColor = template.color;
-            button.style.color = template.color;
-
-            if (currentEditingCharacter.characterArc.templateType === key) {
-                button.classList.add('active');
-            }
-
-            button.addEventListener('click', () => {
-                console.log('Template clicked:', key);
-                selectTemplate(key);
-            });
-            container.appendChild(button);
-        });
-
-        console.log('Template buttons rendered:', container.children.length);
-    }
-
-    // Select Template
-    function selectTemplate(templateKey) {
-        const template = ARC_TEMPLATES[templateKey];
-        if (!template) return;
-
-        // Confirm if changing template and beats exist
-        if (currentEditingCharacter.characterArc.beats.length > 0 &&
-            currentEditingCharacter.characterArc.templateType !== templateKey) {
-            const confirmed = confirm('Changing templates will replace existing beats. Continue?');
-            if (!confirmed) return;
-        }
-
-        // Set template type
-        currentEditingCharacter.characterArc.templateType = templateKey;
-
-        // Create beats from template
-        const app = getApp();
-        currentEditingCharacter.characterArc.beats = template.defaultBeats.map((beatTemplate, index) => {
-            const beat = app.ItemFactory.createArcBeat(beatTemplate.name, index);
-            beat.yPosition = beatTemplate.y;
-            return beat;
-        });
-
-        // Save and re-render
-        saveArcChanges();
-        renderTemplateButtons();
-        renderBeatList();
-        showBeatDetailEmpty();
-    }
-
-    // Render Beat List
-    function renderBeatList() {
-        const container = document.getElementById('arcBeatsList');
-        container.innerHTML = '';
-
-        const beats = currentEditingCharacter.characterArc.beats || [];
-
-        if (beats.length === 0) {
-            container.innerHTML = '<p style="color: #6b7280; text-align: center; padding: 20px;">No beats yet. Select a template or add a beat manually.</p>';
-            return;
-        }
-
-        beats.forEach((beat, index) => {
-            const beatElement = document.createElement('div');
-            beatElement.className = 'arc-beat-item';
-            beatElement.setAttribute('data-beat-id', beat.id);
-
-            const linkedCount = (beat.linkedScenes?.length || 0) + (beat.linkedChapters?.length || 0);
-
-            beatElement.innerHTML = `
-                <span class="beat-drag-handle">☰</span>
-                <div class="beat-info">
-                    <div>
-                        <span class="beat-order">${index + 1}</span>
-                        <span class="beat-name">${beat.name || 'Untitled Beat'}</span>
-                    </div>
-                    ${linkedCount > 0 ? `<div class="beat-links"><span class="beat-link-badge">${linkedCount} linked</span></div>` : ''}
-                </div>
-            `;
-
-            beatElement.addEventListener('click', () => selectBeat(beat));
-            container.appendChild(beatElement);
-        });
-
-        // Initialize Sortable for drag-and-drop
-        initializeBeatSortable();
-    }
-
-    // Initialize Sortable for Beat Reordering
-    function initializeBeatSortable() {
-        const beatsList = document.getElementById('arcBeatsList');
-        if (beatsList && window.Sortable) {
-            new Sortable(beatsList, {
-                animation: 150,
-                handle: '.beat-drag-handle',
-                onEnd: function(evt) {
-                    reorderBeats(evt.oldIndex, evt.newIndex);
-                }
-            });
-        }
-    }
-
-    // Reorder Beats
-    function reorderBeats(oldIndex, newIndex) {
-        const beats = currentEditingCharacter.characterArc.beats;
-        const [movedBeat] = beats.splice(oldIndex, 1);
-        beats.splice(newIndex, 0, movedBeat);
-
-        // Update order values
-        beats.forEach((beat, index) => {
-            beat.order = index;
-        });
-
-        saveArcChanges();
-        renderBeatList();
-
-        // Re-select the moved beat if it was selected
-        if (currentSelectedBeat && currentSelectedBeat.id === movedBeat.id) {
-            selectBeat(movedBeat);
-        }
-    }
-
-    // Select Beat
-    function selectBeat(beat) {
-        currentSelectedBeat = beat;
-
-        // Update UI to show selected state
-        document.querySelectorAll('.arc-beat-item').forEach(item => {
-            item.classList.remove('selected');
-            if (item.getAttribute('data-beat-id') === beat.id) {
-                item.classList.add('selected');
-            }
-        });
-
-        // Show beat details
-        showBeatDetail(beat);
-    }
-
-    // Show Beat Detail
-    function showBeatDetail(beat) {
-        document.querySelector('.beat-detail-empty').style.display = 'none';
-        const content = document.querySelector('.beat-detail-content');
-        content.style.display = 'block';
-
-        // Populate fields
-        document.getElementById('beatName').value = beat.name || '';
-        document.getElementById('beatDescription').value = beat.description || '';
-        document.getElementById('beatEmotionalState').value = beat.emotionalState || '';
-        document.getElementById('beatYPosition').value = beat.yPosition || 50;
-        document.getElementById('beatYPositionValue').textContent = beat.yPosition || 50;
-
-        // Render linked scenes and chapters
-        renderLinkedScenes(beat);
-        renderLinkedChapters(beat);
-    }
-
-    // Show Empty Beat Detail
-    function showBeatDetailEmpty() {
-        document.querySelector('.beat-detail-empty').style.display = 'flex';
-        document.querySelector('.beat-detail-content').style.display = 'none';
-        currentSelectedBeat = null;
-
-        // Remove selected state from all beats
-        document.querySelectorAll('.arc-beat-item').forEach(item => {
-            item.classList.remove('selected');
-        });
-    }
-
-    // Render Linked Scenes
-    function renderLinkedScenes(beat) {
-        const container = document.getElementById('beatLinkedScenes');
-        container.innerHTML = '';
-
-        const book = getCurrentBook();
-        if (!book || !book.scenes || book.scenes.length === 0) {
-            container.innerHTML = '<p style="color: #6b7280; font-size: 12px;">No scenes available</p>';
-            return;
-        }
-
-        book.scenes.forEach(scene => {
-            const isLinked = beat.linkedScenes && beat.linkedScenes.includes(scene.id);
-
-            const div = document.createElement('div');
-            div.className = 'linked-content-item';
-
-            const checkbox = document.createElement('input');
-            checkbox.type = 'checkbox';
-            checkbox.id = `scene-${scene.id}`;
-            checkbox.checked = isLinked;
-            checkbox.addEventListener('change', (e) => toggleSceneLink(beat, scene.id, e.target.checked));
-
-            const label = document.createElement('label');
-            label.htmlFor = `scene-${scene.id}`;
-            label.textContent = scene.title || 'Untitled Scene';
-
-            div.appendChild(checkbox);
-            div.appendChild(label);
-            container.appendChild(div);
-        });
-    }
-
-    // Render Linked Chapters
-    function renderLinkedChapters(beat) {
-        const container = document.getElementById('beatLinkedChapters');
-        container.innerHTML = '';
-
-        const book = getCurrentBook();
-        if (!book || !book.chapters || book.chapters.length === 0) {
-            container.innerHTML = '<p style="color: #6b7280; font-size: 12px;">No chapters available</p>';
-            return;
-        }
-
-        book.chapters.forEach(chapter => {
-            const isLinked = beat.linkedChapters && beat.linkedChapters.includes(chapter.id);
-
-            const div = document.createElement('div');
-            div.className = 'linked-content-item';
-
-            const checkbox = document.createElement('input');
-            checkbox.type = 'checkbox';
-            checkbox.id = `chapter-${chapter.id}`;
-            checkbox.checked = isLinked;
-            checkbox.addEventListener('change', (e) => toggleChapterLink(beat, chapter.id, e.target.checked));
-
-            const label = document.createElement('label');
-            label.htmlFor = `chapter-${chapter.id}`;
-            label.textContent = chapter.title || 'Untitled Chapter';
-
-            div.appendChild(checkbox);
-            div.appendChild(label);
-            container.appendChild(div);
-        });
-    }
-
-    // Toggle Scene Link
-    function toggleSceneLink(beat, sceneId, isChecked) {
-        if (!beat.linkedScenes) beat.linkedScenes = [];
-
-        if (isChecked) {
-            if (!beat.linkedScenes.includes(sceneId)) {
-                beat.linkedScenes.push(sceneId);
-            }
-        } else {
-            beat.linkedScenes = beat.linkedScenes.filter(id => id !== sceneId);
-        }
-
-        saveArcChanges();
-        renderBeatList(); // Update link count badges
-    }
-
-    // Toggle Chapter Link
-    function toggleChapterLink(beat, chapterId, isChecked) {
-        if (!beat.linkedChapters) beat.linkedChapters = [];
-
-        if (isChecked) {
-            if (!beat.linkedChapters.includes(chapterId)) {
-                beat.linkedChapters.push(chapterId);
-            }
-        } else {
-            beat.linkedChapters = beat.linkedChapters.filter(id => id !== chapterId);
-        }
-
-        saveArcChanges();
-        renderBeatList(); // Update link count badges
-    }
-
-    // Add New Beat
-    function addNewBeat() {
-        const app = getApp();
-        const order = currentEditingCharacter.characterArc.beats.length;
-        const newBeat = app.ItemFactory.createArcBeat('New Beat', order);
-
-        currentEditingCharacter.characterArc.beats.push(newBeat);
-
-        saveArcChanges();
-        renderBeatList();
-        selectBeat(newBeat);
-    }
-
-    // Delete Beat
-    function deleteBeat() {
-        if (!currentSelectedBeat) return;
-
-        const confirmed = confirm(`Delete beat "${currentSelectedBeat.name}"?`);
-        if (!confirmed) return;
-
-        currentEditingCharacter.characterArc.beats = currentEditingCharacter.characterArc.beats.filter(
-            beat => beat.id !== currentSelectedBeat.id
-        );
-
-        // Update order values
-        currentEditingCharacter.characterArc.beats.forEach((beat, index) => {
-            beat.order = index;
-        });
-
-        saveArcChanges();
-        renderBeatList();
-        showBeatDetailEmpty();
-    }
-
-    // Save Arc Changes (with debouncing)
-    function saveArcChanges() {
-        if (arcSaveDebounceTimer) {
-            clearTimeout(arcSaveDebounceTimer);
-        }
-
-        arcSaveDebounceTimer = setTimeout(() => {
-            const book = getCurrentBook();
-            if (book && currentEditingCharacter) {
-                updateBook(getBooks(), book);
-                console.log('Character arc saved');
-
-                // Update graph if graph view is active
-                const graphView = document.getElementById('arcGraphView');
-                if (graphView && graphView.classList.contains('active')) {
-                    renderArcGraph();
-                }
-            }
-        }, 300);
-    }
-
-    // Event Listeners for Beat Detail Panel
-    document.getElementById('beatName')?.addEventListener('input', function() {
-        if (currentSelectedBeat) {
-            currentSelectedBeat.name = this.value;
-            saveArcChanges();
-            renderBeatList(); // Update beat name in list
-        }
-    });
-
-    document.getElementById('beatDescription')?.addEventListener('input', function() {
-        if (currentSelectedBeat) {
-            currentSelectedBeat.description = this.value;
-            saveArcChanges();
-        }
-    });
-
-    document.getElementById('beatEmotionalState')?.addEventListener('input', function() {
-        if (currentSelectedBeat) {
-            currentSelectedBeat.emotionalState = this.value;
-            saveArcChanges();
-        }
-    });
-
-    document.getElementById('beatYPosition')?.addEventListener('input', function() {
-        if (currentSelectedBeat) {
-            currentSelectedBeat.yPosition = parseInt(this.value);
-            document.getElementById('beatYPositionValue').textContent = this.value;
-            saveArcChanges();
-        }
-    });
-
-    // Arc Editor Button Event Listeners
-    document.getElementById('closeArcEditor')?.addEventListener('click', closeArcEditor);
-    document.getElementById('closeArcEditorFooter')?.addEventListener('click', closeArcEditor);
-    document.getElementById('addArcBeat')?.addEventListener('click', addNewBeat);
-    document.getElementById('deleteBeat')?.addEventListener('click', deleteBeat);
-
-    // View Toggle (List/Graph)
-    console.log('Setting up view toggle listeners...');
-    const viewButtons = document.querySelectorAll('.arc-view-btn');
-    console.log('Found view buttons:', viewButtons.length);
-    viewButtons.forEach(btn => {
-        console.log('Attaching listener to button:', btn);
-        btn.addEventListener('click', function() {
-            const view = this.getAttribute('data-view');
-            console.log('View toggle clicked:', view);
-
-            // Update button states
-            document.querySelectorAll('.arc-view-btn').forEach(b => b.classList.remove('active'));
-            this.classList.add('active');
-
-            // Show/hide views
-            const arcViews = document.querySelectorAll('.arc-view');
-            console.log('Arc views found:', arcViews.length);
-            arcViews.forEach(v => {
-                console.log('Removing active from:', v.id);
-                v.classList.remove('active');
-            });
-            if (view === 'list') {
-                const listView = document.getElementById('arcListView');
-                console.log('Adding active to list view:', listView);
-                listView.classList.add('active');
-                console.log('List view classes:', listView.className);
-            } else if (view === 'graph') {
-                const graphView = document.getElementById('arcGraphView');
-                console.log('Adding active to graph view:', graphView);
-                graphView.classList.add('active');
-                console.log('Graph view classes:', graphView.className);
-                console.log('Graph view display style:', window.getComputedStyle(graphView).display);
-                // Render graph when switching to graph view
-                try {
-                    renderArcGraph();
-                } catch (error) {
-                    console.error('Error rendering arc graph:', error);
-                }
-            }
-        });
-    });
-
-    // Render Arc Graph using CharacterArcGraph class
-    function renderArcGraph() {
-        console.log('renderArcGraph called');
-        console.log('currentEditingCharacter:', currentEditingCharacter);
-
-        if (!currentEditingCharacter) {
-            console.log('No current editing character');
-            return;
-        }
-
-        // Destroy existing graph instance if it exists
-        if (arcGraphInstance) {
-            arcGraphInstance.destroy();
-        }
-
-        // Create new graph instance
-        arcGraphInstance = new CharacterArcGraph(currentEditingCharacter, ARC_TEMPLATES);
-
-        // Set up event handlers
-        arcGraphInstance.onBeatClick((beat) => {
-            selectBeat(beat);
-        });
-
-        arcGraphInstance.onBeatDrag((beat) => {
-            saveArcChanges();
-            // Update detail panel if this beat is selected
-            if (currentSelectedBeat && currentSelectedBeat.id === beat.id) {
-                const yPositionInput = document.getElementById('beatYPosition');
-                const yPositionValue = document.getElementById('beatYPositionValue');
-                if (yPositionInput) yPositionInput.value = beat.yPosition;
-                if (yPositionValue) yPositionValue.textContent = beat.yPosition;
-            }
-        });
-
-        // Render the graph
-        arcGraphInstance.show();
-        console.log('=== GRAPH RENDERING COMPLETE ===');
-    }
-
-    // Update Character Arc Preview
-    function updateCharacterArcPreview(character) {
-        const previewContainer = document.getElementById('arcPreviewContent');
-        if (!previewContainer) return;
-
-        const arc = character.characterArc;
-        if (!arc || !arc.templateType || arc.beats.length === 0) {
-            previewContainer.innerHTML = '<p style="color: #6b7280;">No arc configured yet. Click "Edit Character Arc" to get started.</p>';
-            return;
-        }
-
-        const template = ARC_TEMPLATES[arc.templateType];
-        const templateName = template ? template.name : 'Custom';
-        const beatCount = arc.beats.length;
-        const linkedCount = arc.beats.reduce((sum, beat) => {
-            return sum + (beat.linkedScenes?.length || 0) + (beat.linkedChapters?.length || 0);
-        }, 0);
-
-        previewContainer.innerHTML = `
-            <div style="margin-bottom: 10px;">
-                <strong style="color: #f3f4f6; font-size: 16px;">${templateName} Arc</strong>
-            </div>
-            <div style="display: flex; gap: 15px; font-size: 14px;">
-                <div><span style="color: #9ca3af;">Beats:</span> <span style="color: #e5e7eb;">${beatCount}</span></div>
-                <div><span style="color: #9ca3af;">Linked Content:</span> <span style="color: #e5e7eb;">${linkedCount}</span></div>
-            </div>
-        `;
-    }
-
-    // Event Listener for Edit Character Arc button
-    document.getElementById('openCharacterArcEditor')?.addEventListener('click', function() {
-        const character = getCurrentItem();
-        if (character) {
-            openArcEditor(character);
-        }
-    });
-
-    // Make openArcEditor available globally
-    window.openArcEditor = openArcEditor;
-
-    // Initialize event listeners for rich text editor
-    richTextEditor.initializeEventListeners();
 });
