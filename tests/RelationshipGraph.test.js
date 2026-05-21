@@ -1,10 +1,9 @@
 import { describe, test, expect, beforeEach, jest } from '@jest/globals';
 import { RelationshipGraph } from '../RelationshipGraph.js';
 
-// Mock vis.js Network and DataSet
 class MockDataSet {
   constructor(data = []) {
-    this.data = data;
+    this.data = [...data];
   }
 
   get() {
@@ -24,15 +23,14 @@ class MockDataSet {
   }
 
   update(items) {
-    // Simple update implementation
-    if (Array.isArray(items)) {
-      items.forEach(item => {
-        const index = this.data.findIndex(d => d.id === item.id);
-        if (index !== -1) {
-          this.data[index] = { ...this.data[index], ...item };
-        }
-      });
-    }
+    const updates = Array.isArray(items) ? items : [items];
+
+    updates.forEach(item => {
+      const index = this.data.findIndex(existing => existing.id === item.id);
+      if (index !== -1) {
+        this.data[index] = { ...this.data[index], ...item };
+      }
+    });
   }
 }
 
@@ -42,6 +40,8 @@ class MockNetwork {
     this.data = data;
     this.options = options;
     this.eventListeners = {};
+    this.fit = jest.fn();
+    this.selectNodes = jest.fn();
   }
 
   on(event, callback) {
@@ -59,7 +59,6 @@ class MockNetwork {
   }
 }
 
-// Setup vis.js global mock
 global.vis = {
   Network: MockNetwork,
   DataSet: MockDataSet
@@ -68,629 +67,331 @@ global.vis = {
 describe('RelationshipGraph', () => {
   let graph;
   let mockBook;
-  let containerHTML;
 
   beforeEach(() => {
-    // Create the graph container
-    containerHTML = `
-      <div id="graphContainer"></div>
-    `;
-    document.body.innerHTML = containerHTML;
+    document.body.innerHTML = '<div id="graphContainer"></div>';
 
-    // Create mock book data
     mockBook = {
       name: 'Test Book',
       characters: [
-        {
-          name: 'Alice',
-          description: 'The protagonist',
-          tags: ['hero', 'brave'],
-          relationships: []
-        },
-        {
-          name: 'Bob',
-          description: 'The sidekick',
-          tags: ['sidekick', 'funny'],
-          relationships: []
-        },
-        {
-          name: 'Carol',
-          description: 'The villain',
-          tags: ['villain'],
-          relationships: []
-        }
+        { name: 'Alice', description: 'The protagonist', type: 'Hero', tags: ['brave'], relationships: [] },
+        { name: 'Bob', description: 'The sidekick', type: 'Friend', tags: ['funny'], relationships: [] },
+        { name: 'Carol', description: 'The villain', type: 'Rival', tags: ['villain'], relationships: [] },
+        { name: 'Dina', description: 'Unconnected observer', type: 'Witness', tags: [], relationships: [] }
       ],
       relationships: [
         { character1: 'Alice', character2: 'Bob', type: 'friend' },
         { character1: 'Alice', character2: 'Carol', type: 'enemy' },
-        { character1: 'Bob', character2: 'Carol', type: 'colleague' }
-      ],
-      locations: [],
-      plotPoints: [],
-      notes: [],
-      tags: ['hero', 'villain', 'sidekick', 'brave', 'funny']
+        { character1: 'Bob', character2: 'Carol', type: 'colleague' },
+        { character1: 'Alice', character2: 'Dina', type: 'mentor' }
+      ]
     };
 
     graph = new RelationshipGraph(mockBook);
   });
 
   describe('constructor', () => {
-    test('should initialize with book and container', () => {
+    test('initializes graph state', () => {
       expect(graph.book).toBe(mockBook);
       expect(graph.container).toBe(document.getElementById('graphContainer'));
       expect(graph.network).toBeNull();
       expect(graph.data).toBeNull();
+      expect(graph.currentFilter).toBe('all');
+      expect(graph.showIsolated).toBe(true);
     });
 
-    test('should handle missing container gracefully', () => {
+    test('handles missing container gracefully', () => {
       document.body.innerHTML = '';
       const graphWithoutContainer = new RelationshipGraph(mockBook);
 
       expect(graphWithoutContainer.container).toBeNull();
+      expect(() => graphWithoutContainer.show()).not.toThrow();
     });
   });
 
   describe('show', () => {
-    test('should render graph when container exists', () => {
+    test('renders focused map structure and vis network', () => {
       graph.show();
 
-      expect(graph.container.innerHTML).not.toBe('');
-      expect(graph.data).not.toBeNull();
+      expect(document.getElementById('relationshipSearch')).not.toBeNull();
+      expect(document.getElementById('relationshipFilter')).not.toBeNull();
+      expect(document.getElementById('showIsolatedCharacters')).not.toBeNull();
+      expect(document.getElementById('fitRelationshipMap')).not.toBeNull();
+      expect(document.getElementById('relationshipMapStats')).not.toBeNull();
+      expect(document.getElementById('relationshipMapLegend')).not.toBeNull();
+      expect(document.getElementById('relationshipGraphNetwork')).toBe(graph.network.container);
       expect(graph.network).not.toBeNull();
     });
 
-    test('should create filter controls', () => {
+    test('does not render Add Relationship or edit controls on graph screen', () => {
       graph.show();
 
-      const filter = document.getElementById('relationshipFilter');
-      expect(filter).not.toBeNull();
-      expect(filter.tagName).toBe('SELECT');
+      expect(graph.container.textContent).not.toContain('Add Relationship');
+      expect(graph.container.textContent).not.toContain('Edit Relationship');
     });
 
-    test('should not render if container is null', () => {
-      graph.container = null;
-
-      expect(() => graph.show()).not.toThrow();
-      expect(graph.data).toBeNull();
-      expect(graph.network).toBeNull();
-    });
-
-    test('should clear existing content before rendering', () => {
+    test('clears existing content before rendering', () => {
       graph.container.innerHTML = '<div class="existing">Existing content</div>';
 
       graph.show();
 
-      const existingDiv = graph.container.querySelector('div.existing');
-      expect(existingDiv).toBeNull();
+      expect(graph.container.querySelector('.existing')).toBeNull();
     });
   });
 
-  describe('createFilterControls', () => {
-    test('should create filter dropdown with all relationship types', () => {
+  describe('filter controls', () => {
+    test('creates known defaults plus custom relationship types', () => {
+      mockBook.relationships.push({ character1: 'Alice', character2: 'Bob', type: 'Oath Bond' });
+
       graph.show();
 
-      const filter = document.getElementById('relationshipFilter');
-      const options = Array.from(filter.options).map(opt => opt.value);
+      const options = Array.from(document.getElementById('relationshipFilter').options).map(option => option.value);
 
       expect(options).toContain('all');
-      expect(options).toContain('married');
       expect(options).toContain('family');
       expect(options).toContain('friend');
       expect(options).toContain('enemy');
-      expect(options).toContain('colleague');
-      expect(options).toContain('lover');
+      expect(options).toContain('mentor');
+      expect(options).toContain('oath bond');
     });
 
-    test('should have "all" as default selection', () => {
-      graph.show();
-
-      const filter = document.getElementById('relationshipFilter');
-      expect(filter.value).toBe('all');
-    });
-
-    test('should trigger filterRelationships on change', () => {
-      const filterSpy = jest.spyOn(graph, 'filterRelationships');
+    test('filters edges by relationship type from dropdown change', () => {
       graph.show();
 
       const filter = document.getElementById('relationshipFilter');
       filter.value = 'friend';
       filter.dispatchEvent(new Event('change'));
 
-      expect(filterSpy).toHaveBeenCalledWith('friend');
+      expect(graph.data.edges.get()).toHaveLength(1);
+      expect(graph.data.edges.get()[0].group).toBe('friend');
+    });
+
+    test('restores all relationships after filtering', () => {
+      graph.show();
+
+      graph.filterRelationships('enemy');
+      expect(graph.data.edges.get()).toHaveLength(1);
+
+      graph.filterRelationships('all');
+      expect(graph.data.edges.get()).toHaveLength(4);
+    });
+
+    test('hides isolated characters when toggle is off', () => {
+      mockBook.relationships = [
+        { character1: 'Alice', character2: 'Bob', type: 'friend' }
+      ];
+      graph.show();
+
+      graph.toggleIsolatedCharacters(false);
+
+      const hiddenNames = graph.data.nodes.get()
+        .filter(node => node.hidden)
+        .map(node => node.characterName);
+
+      expect(hiddenNames).toEqual(expect.arrayContaining(['Carol', 'Dina']));
+      expect(hiddenNames).not.toContain('Alice');
     });
   });
 
   describe('prepareData', () => {
-    test('should create nodes from characters', () => {
-      const data = graph.prepareData();
-
-      expect(data.nodes).toBeInstanceOf(MockDataSet);
-      const nodes = data.nodes.get();
-      expect(nodes).toHaveLength(3);
-      expect(nodes[0].label).toBe('Alice');
-      expect(nodes[1].label).toBe('Bob');
-      expect(nodes[2].label).toBe('Carol');
-    });
-
-    test('should assign sequential IDs to nodes', () => {
-      const data = graph.prepareData();
-      const nodes = data.nodes.get();
-
-      expect(nodes[0].id).toBe(0);
-      expect(nodes[1].id).toBe(1);
-      expect(nodes[2].id).toBe(2);
-    });
-
-    test('should include tooltips for nodes', () => {
-      const data = graph.prepareData();
-      const nodes = data.nodes.get();
-
-      expect(nodes[0].title).toContain('Alice');
-      expect(nodes[0].title).toContain('The protagonist');
-      expect(nodes[0].title).toContain('hero, brave');
-    });
-
-    test('should create edges from relationships', () => {
-      const data = graph.prepareData();
-
-      expect(data.edges).toBeInstanceOf(MockDataSet);
-      const edges = data.edges.get();
-      expect(edges).toHaveLength(3);
-    });
-
-    test('should map character names to node indices in edges', () => {
-      const data = graph.prepareData();
-      const edges = data.edges.get();
-
-      // Alice (0) -> Bob (1), type: friend
-      const aliceBobEdge = edges.find(e => e.from === 0 && e.to === 1);
-      expect(aliceBobEdge).toBeDefined();
-      expect(aliceBobEdge.label).toBe('friend');
-    });
-
-    test('should apply correct edge styles based on relationship type', () => {
-      const data = graph.prepareData();
-      const edges = data.edges.get();
-
-      const friendEdge = edges.find(e => e.label === 'friend');
-      expect(friendEdge.color.color).toBe('#0000FF'); // Blue for friend
-      expect(friendEdge.dashes).toBe(false);
-
-      const enemyEdge = edges.find(e => e.label === 'enemy');
-      expect(enemyEdge.color.color).toBe('#FF00FF'); // Magenta for enemy
-      expect(enemyEdge.dashes).toEqual([5, 5]); // Dashed line
-    });
-
-    test('should handle empty characters array', () => {
-      graph.book.characters = [];
-      graph.book.relationships = [];
-
+    test('creates styled nodes and edges from book data', () => {
       const data = graph.prepareData();
       const nodes = data.nodes.get();
       const edges = data.edges.get();
 
-      expect(nodes).toHaveLength(0);
-      expect(edges).toHaveLength(0);
+      expect(nodes).toHaveLength(4);
+      expect(nodes[0]).toMatchObject({
+        id: 0,
+        label: 'Alice',
+        characterName: 'Alice',
+        group: 'connected',
+        relationshipCount: 3
+      });
+      expect(nodes[0].color.border).toBe('#10295f');
+
+      expect(edges).toHaveLength(4);
+      expect(edges[0]).toMatchObject({
+        from: 0,
+        to: 1,
+        group: 'friend',
+        label: 'Friend'
+      });
+      expect(edges[0].color.color).toBe('#6b8f71');
     });
 
-    test('should handle characters with no relationships', () => {
-      graph.book.relationships = [];
+    test('uses muted red dashed styling for enemy and conflict relationships', () => {
+      const data = graph.prepareData();
+      const enemyEdge = data.edges.get().find(edge => edge.group === 'enemy');
+
+      expect(enemyEdge.color.color).toBe('#b4443e');
+      expect(enemyEdge.dashes).toEqual([8, 6]);
+    });
+
+    test('marks characters with no valid relationships as isolated', () => {
+      mockBook.relationships = [
+        { character1: 'Alice', character2: 'Bob', type: 'friend' }
+      ];
 
       const data = graph.prepareData();
-      const nodes = data.nodes.get();
+      const dina = data.nodes.get().find(node => node.characterName === 'Dina');
+
+      expect(dina.group).toBe('isolated');
+      expect(dina.relationshipCount).toBe(0);
+      expect(dina.color.background).toBe('#f8f3df');
+    });
+
+    test('skips relationships that reference missing characters', () => {
+      mockBook.relationships.push({ character1: 'Alice', character2: 'Missing', type: 'friend' });
+
+      const data = graph.prepareData();
       const edges = data.edges.get();
 
-      expect(nodes).toHaveLength(3);
-      expect(edges).toHaveLength(0);
+      expect(edges).toHaveLength(4);
+      expect(edges.some(edge => edge.from === -1 || edge.to === -1)).toBe(false);
+      expect(graph.invalidRelationships).toHaveLength(1);
     });
   });
 
-  describe('getCharacterTooltip', () => {
-    test('should format tooltip with character info', () => {
-      const character = mockBook.characters[0];
-      const tooltip = graph.getCharacterTooltip(character);
+  describe('tooltips and styles', () => {
+    test('formats tooltip with character role, description, tags, and count', () => {
+      const tooltip = graph.getCharacterTooltip(mockBook.characters[0], 3);
 
       expect(tooltip).toContain('<strong>Alice</strong>');
+      expect(tooltip).toContain('Hero | 3 relationships');
       expect(tooltip).toContain('The protagonist');
-      expect(tooltip).toContain('hero, brave');
+      expect(tooltip).toContain('Tags: brave');
     });
 
-    test('should handle character without description', () => {
-      const character = { name: 'Dan', tags: ['minor'] };
-      const tooltip = graph.getCharacterTooltip(character);
+    test('escapes tooltip HTML from character data', () => {
+      const tooltip = graph.getCharacterTooltip({
+        name: '<Alice>',
+        description: '<script>alert(1)</script>',
+        type: 'Hero',
+        tags: ['<tag>']
+      }, 1);
 
-      expect(tooltip).toContain('Dan');
-      expect(tooltip).toContain('No description available');
+      expect(tooltip).toContain('&lt;Alice&gt;');
+      expect(tooltip).not.toContain('<script>');
     });
 
-    test('should handle character without tags', () => {
-      const character = { name: 'Eve', description: 'A character' };
-      const tooltip = graph.getCharacterTooltip(character);
+    test('returns fallback style for custom relationship type', () => {
+      const style = graph.getEdgeStyle('oath bond');
 
-      expect(tooltip).toContain('Eve');
-      expect(tooltip).toContain('Tags: None');
-    });
-
-    test('should handle character with empty tags array', () => {
-      const character = { name: 'Frank', description: 'Test', tags: [] };
-      const tooltip = graph.getCharacterTooltip(character);
-
-      expect(tooltip).toContain('Tags: None');
+      expect(style.color).toBe('#4d5364');
+      expect(style.dashes).toBe(false);
     });
   });
 
-  describe('getEdgeStyle', () => {
-    test('should return red solid line for married', () => {
-      const style = graph.getEdgeStyle('married');
-      expect(style.color).toBe('#FF0000');
-      expect(style.dashes).toBe(false);
-    });
+  describe('stats and states', () => {
+    test('renders stats for characters, relationships, conflicts, and unconnected characters', () => {
+      mockBook.relationships = [
+        { character1: 'Alice', character2: 'Bob', type: 'friend' },
+        { character1: 'Alice', character2: 'Carol', type: 'enemy' }
+      ];
 
-    test('should return green solid line for family', () => {
-      const style = graph.getEdgeStyle('family');
-      expect(style.color).toBe('#00FF00');
-      expect(style.dashes).toBe(false);
-    });
-
-    test('should return blue solid line for friend', () => {
-      const style = graph.getEdgeStyle('friend');
-      expect(style.color).toBe('#0000FF');
-      expect(style.dashes).toBe(false);
-    });
-
-    test('should return magenta dashed line for enemy', () => {
-      const style = graph.getEdgeStyle('enemy');
-      expect(style.color).toBe('#FF00FF');
-      expect(style.dashes).toEqual([5, 5]);
-    });
-
-    test('should return orange solid line for colleague', () => {
-      const style = graph.getEdgeStyle('colleague');
-      expect(style.color).toBe('#FFA500');
-      expect(style.dashes).toBe(false);
-    });
-
-    test('should return red solid line for lover', () => {
-      const style = graph.getEdgeStyle('lover');
-      expect(style.color).toBe('#FF0000');
-      expect(style.dashes).toBe(false);
-    });
-
-    test('should return gray solid line for unknown type', () => {
-      const style = graph.getEdgeStyle('unknown');
-      expect(style.color).toBe('#808080');
-      expect(style.dashes).toBe(false);
-    });
-
-    test('should handle case-insensitive relationship types', () => {
-      const style1 = graph.getEdgeStyle('FRIEND');
-      const style2 = graph.getEdgeStyle('Friend');
-      const style3 = graph.getEdgeStyle('friend');
-
-      expect(style1.color).toBe(style2.color);
-      expect(style2.color).toBe(style3.color);
-    });
-  });
-
-  describe('getGraphOptions', () => {
-    test('should return valid vis.js options object', () => {
-      const options = graph.getGraphOptions();
-
-      expect(options.nodes).toBeDefined();
-      expect(options.edges).toBeDefined();
-      expect(options.physics).toBeDefined();
-      expect(options.interaction).toBeDefined();
-    });
-
-    test('should configure nodes with circle shape and size 25', () => {
-      const options = graph.getGraphOptions();
-
-      expect(options.nodes.shape).toBe('circle');
-      expect(options.nodes.size).toBe(25);
-      expect(options.nodes.font.size).toBe(14);
-    });
-
-    test('should configure edges with arrows and curved style', () => {
-      const options = graph.getGraphOptions();
-
-      expect(options.edges.arrows).toBe('to');
-      expect(options.edges.smooth.type).toBe('curvedCW');
-      expect(options.edges.smooth.roundness).toBe(0.2);
-      expect(options.edges.font.size).toBe(12);
-      expect(options.edges.font.align).toBe('middle');
-    });
-
-    test('should enable physics with specific parameters', () => {
-      const options = graph.getGraphOptions();
-
-      expect(options.physics.enabled).toBe(true);
-      expect(options.physics.barnesHut).toBeDefined();
-      expect(options.physics.barnesHut.gravitationalConstant).toBe(-2000);
-      expect(options.physics.barnesHut.centralGravity).toBe(0.3);
-      expect(options.physics.barnesHut.springLength).toBe(95);
-      expect(options.physics.barnesHut.springConstant).toBe(0.04);
-      expect(options.physics.barnesHut.damping).toBe(0.09);
-    });
-
-    test('should enable interaction with hover and tooltip delay', () => {
-      const options = graph.getGraphOptions();
-
-      expect(options.interaction.hover).toBe(true);
-      expect(options.interaction.tooltipDelay).toBe(200);
-    });
-  });
-
-  describe('addEventListeners', () => {
-    test('should add click event listener to network', () => {
       graph.show();
 
-      expect(graph.network.eventListeners.click).toBeDefined();
+      const stats = document.getElementById('relationshipMapStats').textContent;
+      expect(stats).toContain('4');
+      expect(stats).toContain('Characters');
+      expect(stats).toContain('2');
+      expect(stats).toContain('Relationships');
+      expect(stats).toContain('1');
+      expect(stats).toContain('Conflict lines');
+      expect(stats).toContain('Unconnected');
     });
 
-    test('should call showCharacterDetails on node click', () => {
-      const showDetailsSpy = jest.spyOn(graph, 'showCharacterDetails');
-      graph.show();
-
-      // Simulate clicking on node 0 (Alice)
-      graph.network.trigger('click', { nodes: [0] });
-
-      expect(showDetailsSpy).toHaveBeenCalledWith(mockBook.characters[0]);
-    });
-
-    test('should not call showCharacterDetails when clicking empty space', () => {
-      const showDetailsSpy = jest.spyOn(graph, 'showCharacterDetails');
-      graph.show();
-
-      // Simulate clicking on empty space
-      graph.network.trigger('click', { nodes: [] });
-
-      expect(showDetailsSpy).not.toHaveBeenCalled();
-    });
-
-    test('should handle click on multiple nodes (should use first)', () => {
-      const showDetailsSpy = jest.spyOn(graph, 'showCharacterDetails');
-      graph.show();
-
-      // Simulate clicking on multiple nodes
-      graph.network.trigger('click', { nodes: [0, 1] });
-
-      expect(showDetailsSpy).toHaveBeenCalledWith(mockBook.characters[0]);
-    });
-  });
-
-  describe('showCharacterDetails', () => {
-    test('should display character details in container', () => {
-      graph.show();
-      const character = mockBook.characters[0];
-
-      graph.showCharacterDetails(character);
-
-      const detailsDiv = graph.container.querySelector('div:last-child');
-      expect(detailsDiv.innerHTML).toContain('Alice');
-      expect(detailsDiv.innerHTML).toContain('The protagonist');
-      expect(detailsDiv.innerHTML).toContain('hero, brave');
-    });
-
-    test('should display close button', () => {
-      graph.show();
-      const character = mockBook.characters[0];
-
-      graph.showCharacterDetails(character);
-
-      const closeButton = document.getElementById('closeDetails');
-      expect(closeButton).not.toBeNull();
-      expect(closeButton.textContent).toBe('Close');
-    });
-
-    test('should remove details div when close button clicked', () => {
-      graph.show();
-      const character = mockBook.characters[0];
-
-      graph.showCharacterDetails(character);
-
-      const closeButton = document.getElementById('closeDetails');
-      closeButton.click();
-
-      // Details div should be removed
-      const newCloseButton = document.getElementById('closeDetails');
-      expect(newCloseButton).toBeNull();
-    });
-
-    test('should handle character without description', () => {
-      graph.show();
-      const character = { name: 'Test', tags: [] };
-
-      graph.showCharacterDetails(character);
-
-      const detailsDiv = graph.container.querySelector('div:last-child');
-      expect(detailsDiv.innerHTML).toContain('No description available');
-    });
-
-    test('should handle character without tags', () => {
-      graph.show();
-      const character = { name: 'Test', description: 'A test character' };
-
-      graph.showCharacterDetails(character);
-
-      const detailsDiv = graph.container.querySelector('div:last-child');
-      expect(detailsDiv.innerHTML).toContain('Tags: None');
-    });
-  });
-
-  describe('filterRelationships', () => {
-    test('should show all relationships when filter is "all"', () => {
-      graph.show();
-      const initialEdgeCount = graph.data.edges.get().length;
-
-      graph.filterRelationships('all');
-
-      const edges = graph.data.edges.get();
-      expect(edges).toHaveLength(initialEdgeCount);
-      expect(edges).toHaveLength(3);
-    });
-
-    test('should filter to only friend relationships', () => {
-      graph.show();
-
-      graph.filterRelationships('friend');
-
-      const edges = graph.data.edges.get();
-      expect(edges).toHaveLength(1);
-      expect(edges[0].label).toBe('friend');
-    });
-
-    test('should filter to only enemy relationships', () => {
-      graph.show();
-
-      graph.filterRelationships('enemy');
-
-      const edges = graph.data.edges.get();
-      expect(edges).toHaveLength(1);
-      expect(edges[0].label).toBe('enemy');
-    });
-
-    test('should return empty array when no relationships match filter', () => {
-      graph.show();
-
-      graph.filterRelationships('married');
-
-      const edges = graph.data.edges.get();
-      expect(edges).toHaveLength(0);
-    });
-
-    test('should handle case-insensitive filtering', () => {
-      graph.show();
-
-      graph.filterRelationships('FRIEND');
-
-      const edges = graph.data.edges.get();
-      expect(edges).toHaveLength(1);
-      expect(edges[0].label).toBe('friend');
-    });
-
-    test('should restore all relationships after filtering then selecting "all"', () => {
-      graph.show();
-
-      // Filter to friends
-      graph.filterRelationships('friend');
-      expect(graph.data.edges.get()).toHaveLength(1);
-
-      // Restore all
-      graph.filterRelationships('all');
-      expect(graph.data.edges.get()).toHaveLength(3);
-    });
-  });
-
-  describe('edge case scenarios', () => {
-    test('should handle book with no characters', () => {
-      const emptyBook = {
-        name: 'Empty Book',
-        characters: [],
-        relationships: []
-      };
-
-      const emptyGraph = new RelationshipGraph(emptyBook);
-      document.body.innerHTML = '<div id="graphContainer"></div>';
-      emptyGraph.container = document.getElementById('graphContainer');
-
-      expect(() => emptyGraph.show()).not.toThrow();
-    });
-
-    test('should handle book with characters but no relationships', () => {
+    test('renders polished empty state when no relationships exist', () => {
       mockBook.relationships = [];
+
       graph.show();
 
-      const edges = graph.data.edges.get();
-      expect(edges).toHaveLength(0);
+      const empty = document.getElementById('relationshipMapEmpty');
+      expect(empty.hidden).toBe(false);
+      expect(empty.textContent).toContain('No relationships yet');
+      expect(empty.textContent).toContain('More tab');
     });
 
-    test('should handle relationship with non-existent character', () => {
-      mockBook.relationships.push({
-        character1: 'Alice',
-        character2: 'NonExistent',
-        type: 'friend'
-      });
+    test('renders warning when invalid relationship references are skipped', () => {
+      mockBook.relationships = [
+        { character1: 'Alice', character2: 'Missing', type: 'friend' }
+      ];
 
-      const data = graph.prepareData();
-      const edges = data.edges.get();
-
-      // Edge should be created but with -1 index for non-existent character
-      const invalidEdge = edges.find(e => e.to === -1 || e.from === -1);
-      expect(invalidEdge).toBeDefined();
-    });
-
-    test('should handle multiple relationships between same characters', () => {
-      mockBook.relationships.push({
-        character1: 'Alice',
-        character2: 'Bob',
-        type: 'colleague'
-      });
-
-      const data = graph.prepareData();
-      const edges = data.edges.get();
-
-      // Should have 4 edges now (original 3 + 1 new)
-      expect(edges).toHaveLength(4);
-
-      // Should have two edges between Alice (0) and Bob (1)
-      const aliceBobEdges = edges.filter(e =>
-        (e.from === 0 && e.to === 1) || (e.from === 1 && e.to === 0)
-      );
-      expect(aliceBobEdges).toHaveLength(2);
-    });
-  });
-
-  describe('integration scenarios', () => {
-    test('should handle complete workflow: show -> filter -> click -> close', () => {
-      // Show graph
-      graph.show();
-      expect(graph.network).not.toBeNull();
-
-      // Filter to friends
-      const filter = document.getElementById('relationshipFilter');
-      filter.value = 'friend';
-      filter.dispatchEvent(new Event('change'));
-      expect(graph.data.edges.get()).toHaveLength(1);
-
-      // Click on a node
-      graph.network.trigger('click', { nodes: [0] });
-      let closeButton = document.getElementById('closeDetails');
-      expect(closeButton).not.toBeNull();
-
-      // Close details
-      closeButton.click();
-      closeButton = document.getElementById('closeDetails');
-      expect(closeButton).toBeNull();
-    });
-
-    test('should handle rapid filter changes', () => {
       graph.show();
 
-      graph.filterRelationships('friend');
-      expect(graph.data.edges.get()).toHaveLength(1);
-
-      graph.filterRelationships('enemy');
-      expect(graph.data.edges.get()).toHaveLength(1);
-
-      graph.filterRelationships('all');
-      expect(graph.data.edges.get()).toHaveLength(3);
-
-      graph.filterRelationships('married');
+      const warning = document.getElementById('relationshipMapWarning');
+      expect(warning.hidden).toBe(false);
+      expect(warning.textContent).toContain('missing character');
       expect(graph.data.edges.get()).toHaveLength(0);
     });
+  });
 
-    test('should maintain graph state after multiple interactions', () => {
+  describe('search and highlight behavior', () => {
+    test('search highlights matching characters and dims non-matches', () => {
       graph.show();
-      const initialNodeCount = graph.data.nodes.get().length;
 
-      // Multiple interactions
-      graph.filterRelationships('friend');
+      const search = document.getElementById('relationshipSearch');
+      search.value = 'ali';
+      search.dispatchEvent(new Event('input'));
+
+      const alice = graph.data.nodes.get().find(node => node.characterName === 'Alice');
+      const bob = graph.data.nodes.get().find(node => node.characterName === 'Bob');
+
+      expect(alice.borderWidth).toBe(4);
+      expect(bob.opacity).toBe(0.34);
+    });
+
+    test('selecting a character highlights connected edges and nodes', () => {
+      graph.show();
+
       graph.network.trigger('click', { nodes: [0] });
-      document.getElementById('closeDetails').click();
-      graph.filterRelationships('all');
 
-      // Node count should remain the same
-      expect(graph.data.nodes.get()).toHaveLength(initialNodeCount);
+      const alice = graph.data.nodes.get().find(node => node.id === 0);
+      const selectedEdges = graph.data.edges.get().filter(edge => edge.width === 4);
+
+      expect(alice.borderWidth).toBe(4);
+      expect(selectedEdges).toHaveLength(3);
+      expect(graph.network.selectNodes).toHaveBeenCalledWith([0]);
+    });
+
+    test('clicking empty graph space clears selected state without clearing search', () => {
+      graph.show();
+
+      document.getElementById('relationshipSearch').value = 'ali';
+      graph.searchCharacters('ali');
+      graph.network.trigger('click', { nodes: [0] });
+      graph.network.trigger('click', { nodes: [] });
+
+      expect(graph.selectedNodeId).toBeNull();
+      expect(graph.searchTerm).toBe('ali');
+      expect(document.getElementById('relationshipSearch').value).toBe('ali');
+    });
+
+    test('fit button delegates to vis network fit', () => {
+      graph.show();
+
+      document.getElementById('fitRelationshipMap').click();
+
+      expect(graph.network.fit).toHaveBeenCalled();
+    });
+  });
+
+  describe('edge cases', () => {
+    test('handles empty book without throwing', () => {
+      const emptyGraph = new RelationshipGraph({ name: 'Empty Book', characters: [], relationships: [] });
+
+      expect(() => emptyGraph.show()).not.toThrow();
+      expect(emptyGraph.data.nodes.get()).toHaveLength(0);
+      expect(emptyGraph.data.edges.get()).toHaveLength(0);
+    });
+
+    test('supports multiple relationships between the same characters', () => {
+      mockBook.relationships.push({ character1: 'Alice', character2: 'Bob', type: 'family' });
+
+      const data = graph.prepareData();
+      const aliceBobEdges = data.edges.get().filter(edge => edge.from === 0 && edge.to === 1);
+
+      expect(aliceBobEdges).toHaveLength(2);
     });
   });
 });

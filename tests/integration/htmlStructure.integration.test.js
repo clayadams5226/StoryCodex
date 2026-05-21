@@ -15,12 +15,15 @@ const __dirname = path.dirname(__filename);
 
 describe('HTML Structure Integration Tests', () => {
   let html;
+  let relationshipGraphSource;
   let manifest;
 
   beforeEach(() => {
     const htmlPath = path.join(__dirname, '../../popup.html');
+    const relationshipGraphPath = path.join(__dirname, '../../RelationshipGraph.js');
     const manifestPath = path.join(__dirname, '../../manifest.json');
     html = fs.readFileSync(htmlPath, 'utf-8');
+    relationshipGraphSource = fs.readFileSync(relationshipGraphPath, 'utf-8');
     manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf-8'));
   });
 
@@ -43,6 +46,7 @@ describe('HTML Structure Integration Tests', () => {
   describe('Graph Container Elements', () => {
     test('should have graphContainer element for RelationshipGraph', () => {
       expect(html).toContain('id="graphContainer"');
+      expect(html).toContain('class="relationship-map-container"');
     });
 
     test('should have arcGraphNetwork element for CharacterArcGraph', () => {
@@ -51,6 +55,16 @@ describe('HTML Structure Integration Tests', () => {
 
     test('should have relationshipGraph screen section', () => {
       expect(html).toContain('id="relationshipGraph"');
+      expect(html).toContain('class="relationship-map-screen"');
+    });
+
+    test('RelationshipGraph should render focused map controls and containers', () => {
+      expect(relationshipGraphSource).toContain('id="relationshipSearch"');
+      expect(relationshipGraphSource).toContain('id="relationshipFilter"');
+      expect(relationshipGraphSource).toContain('id="showIsolatedCharacters"');
+      expect(relationshipGraphSource).toContain('id="relationshipMapStats"');
+      expect(relationshipGraphSource).toContain('id="relationshipMapLegend"');
+      expect(relationshipGraphSource).toContain('id="relationshipGraphNetwork"');
     });
 
     test('should have arcEditorModal for character arc editing', () => {
@@ -140,6 +154,14 @@ describe('HTML Structure Integration Tests', () => {
 
     test('should have relationships list in book details', () => {
       expect(html).toContain('id="relationships"');
+    });
+
+    test('relationship graph screen should not include relationship creation controls', () => {
+      const graphScreen = html.match(/<div id="relationshipGraph"[\s\S]*?<\/div>\s*<\/main>/);
+
+      expect(graphScreen).not.toBeNull();
+      expect(graphScreen[0]).not.toContain('id="addRelationship"');
+      expect(graphScreen[0]).not.toContain('Add Relationship');
     });
   });
 

@@ -58,9 +58,46 @@ export function saveCurrentState(currentBook, currentItem, currentScreen, curren
     });
 }
 
+export function collectAllBookTags(currentBook) {
+    if (!currentBook) {
+        return [];
+    }
+
+    const tags = new Set();
+    const addTags = (tagList) => {
+        if (!Array.isArray(tagList)) {
+            return;
+        }
+
+        tagList.forEach(tag => {
+            if (tag) {
+                tags.add(tag);
+            }
+        });
+    };
+
+    addTags(currentBook.tags);
+    ['characters', 'locations', 'plotPoints'].forEach(collectionName => {
+        if (Array.isArray(currentBook[collectionName])) {
+            currentBook[collectionName].forEach(item => addTags(item.tags));
+        }
+    });
+
+    return Array.from(tags);
+}
+
+export function syncBookTagsFromItems(currentBook) {
+    if (!currentBook) {
+        return [];
+    }
+
+    currentBook.tags = collectAllBookTags(currentBook);
+    return currentBook.tags;
+}
+
 export function populateTagDropdowns(currentBook) {
     const tagSelects = document.querySelectorAll('.tagSelect');
-    const allTags = currentBook ? currentBook.tags : [];
+    const allTags = collectAllBookTags(currentBook);
 
     tagSelects.forEach(select => {
         const currentValue = select.value; // Store the current value

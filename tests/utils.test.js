@@ -1,5 +1,12 @@
 import { describe, test, expect, beforeEach, jest } from '@jest/globals';
-import { showScreen, saveCurrentState, updateBook, populateTagDropdowns } from '../utils.js';
+import {
+  showScreen,
+  saveCurrentState,
+  updateBook,
+  populateTagDropdowns,
+  collectAllBookTags,
+  syncBookTagsFromItems
+} from '../utils.js';
 
 describe('utils', () => {
   describe('showScreen', () => {
@@ -173,6 +180,22 @@ describe('utils', () => {
       });
     });
 
+    test('should include tags that exist only on characters', () => {
+      const mockBook = {
+        tags: ['Fantasy'],
+        characters: [{ name: 'Alice', tags: ['Hero'] }],
+        locations: [],
+        plotPoints: []
+      };
+
+      populateTagDropdowns(mockBook);
+
+      const select = document.getElementById('tagSelect1');
+      const options = Array.from(select.options).map(option => option.value);
+
+      expect(options).toEqual(['', 'Fantasy', 'Hero']);
+    });
+
     test('should preserve current selection if tag still exists', () => {
       const mockBook = {
         tags: ['Fantasy', 'Adventure', 'Magic']
@@ -209,6 +232,39 @@ describe('utils', () => {
         expect(select.options.length).toBe(1);
         expect(select.options[0].textContent).toBe('Select a tag or type a new one');
       });
+    });
+  });
+
+  describe('collectAllBookTags', () => {
+    test('should merge book and item tags without duplicates', () => {
+      const mockBook = {
+        tags: ['Fantasy', 'Shared'],
+        characters: [{ name: 'Alice', tags: ['Hero', 'Shared'] }],
+        locations: [{ name: 'Castle', tags: ['Fortress'] }],
+        plotPoints: [{ title: 'Reveal', tags: ['Twist'] }]
+      };
+
+      expect(collectAllBookTags(mockBook)).toEqual(['Fantasy', 'Shared', 'Hero', 'Fortress', 'Twist']);
+    });
+
+    test('should handle null book', () => {
+      expect(collectAllBookTags(null)).toEqual([]);
+    });
+  });
+
+  describe('syncBookTagsFromItems', () => {
+    test('should promote item-only tags into the book tag list', () => {
+      const mockBook = {
+        tags: ['Fantasy'],
+        characters: [{ name: 'Alice', tags: ['Hero'] }],
+        locations: [],
+        plotPoints: []
+      };
+
+      const syncedTags = syncBookTagsFromItems(mockBook);
+
+      expect(syncedTags).toEqual(['Fantasy', 'Hero']);
+      expect(mockBook.tags).toEqual(['Fantasy', 'Hero']);
     });
   });
 });

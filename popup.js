@@ -1,4 +1,4 @@
-import { showScreen, updateBook, populateTagDropdowns } from './utils.js';
+import { showScreen, updateBook, populateTagDropdowns, syncBookTagsFromItems } from './utils.js';
 import { RelationshipGraph } from './RelationshipGraph.js';
 import { CharacterArcGraph } from './CharacterArcGraph.js';
 import { DataManager } from './DataManager.js';
@@ -142,6 +142,7 @@ document.addEventListener('DOMContentLoaded', async function () {
         displayCharacters(book.characters);
         displayLocations(book.locations);
         displayPlotPoints(book.plotPoints);
+        syncBookTagsFromItems(book);
         displayTags(book.tags);
         displayRelationships(book.relationships);
         displayNotes(book.notes);
@@ -1540,8 +1541,11 @@ if (saveCharacterButton) {
             });
 
             const book = getCurrentBook();
+            syncBookTagsFromItems(book);
             updateBook(getBooks(), book);
             displayCharacters(book.characters);
+            displayTags(book.tags);
+            populateTagDropdowns(book);
             refreshBookOverview(book);
 
             // Clear current item and update screen in state
@@ -1735,8 +1739,11 @@ if (saveLocationButton) {
             });
 
             const book = getCurrentBook();
+            syncBookTagsFromItems(book);
             updateBook(getBooks(), book);
             displayLocations(book.locations);
+            displayTags(book.tags);
+            populateTagDropdowns(book);
             refreshBookOverview(book);
 
             // Clear current item and update screen in state
@@ -1767,8 +1774,11 @@ if (savePlotPointButton) {
             });
 
             const book = getCurrentBook();
+            syncBookTagsFromItems(book);
             updateBook(getBooks(), book);
             displayPlotPoints(book.plotPoints);
+            displayTags(book.tags);
+            populateTagDropdowns(book);
             refreshBookOverview(book);
 
             // Clear current item and update screen in state
