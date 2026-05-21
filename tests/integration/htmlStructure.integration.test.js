@@ -49,8 +49,8 @@ describe('HTML Structure Integration Tests', () => {
       expect(html).toContain('class="relationship-map-container"');
     });
 
-    test('should have arcGraphNetwork element for CharacterArcGraph', () => {
-      expect(html).toContain('id="arcGraphNetwork"');
+    test('should have arcTimelineCurve element for the character arc editor', () => {
+      expect(html).toContain('id="arcTimelineCurve"');
     });
 
     test('should have relationshipGraph screen section', () => {
@@ -77,26 +77,19 @@ describe('HTML Structure Integration Tests', () => {
       expect(html).toMatch(/type="module"[^>]*src="RelationshipGraph\.js"|src="RelationshipGraph\.js"[^>]*type="module"/);
     });
 
-    test('should load CharacterArcGraph.js as a module', () => {
-      expect(html).toMatch(/type="module"[^>]*src="CharacterArcGraph\.js"|src="CharacterArcGraph\.js"[^>]*type="module"/);
-    });
-
     test('should load vis.js for graph rendering', () => {
       expect(html).toContain('vis.min.js');
     });
 
     test('should load scripts in correct order', () => {
       const relationshipGraphIndex = html.indexOf('RelationshipGraph.js');
-      const characterArcGraphIndex = html.indexOf('CharacterArcGraph.js');
       const popupIndex = html.indexOf('popup.js');
 
       expect(relationshipGraphIndex).toBeGreaterThan(-1);
-      expect(characterArcGraphIndex).toBeGreaterThan(-1);
       expect(popupIndex).toBeGreaterThan(-1);
 
       // Graph classes should load before popup.js
       expect(relationshipGraphIndex).toBeLessThan(popupIndex);
-      expect(characterArcGraphIndex).toBeLessThan(popupIndex);
     });
   });
 
@@ -166,29 +159,31 @@ describe('HTML Structure Integration Tests', () => {
   });
 
   describe('Arc Editor Structure', () => {
-    test('should have view switcher (list and graph views)', () => {
-      // Check for arc views container structure
+    test('should have unified timeline workspace', () => {
       expect(html).toContain('id="arcListView"');
-      expect(html).toContain('id="arcGraphView"');
+      expect(html).toContain('class="arc-workspace"');
+      expect(html).toContain('id="arcTimelineSummary"');
+      expect(html).toContain('id="arcTimelineCurve"');
     });
 
-    test('should have arc graph wrapper', () => {
-      expect(html).toContain('class="arc-graph-wrapper"');
+    test('should have template replacement confirmation controls', () => {
+      expect(html).toContain('id="arcTemplateConfirm"');
+      expect(html).toContain('id="cancelTemplateChange"');
+      expect(html).toContain('id="applyTemplateChange"');
     });
 
-    test('should have arc graph labels', () => {
-      expect(html).toContain('class="arc-graph-labels"');
+    test('should have timeline labels and detail panel', () => {
+      expect(html).toContain('Emotional Timeline');
       expect(html).toContain('Emotional State');
-      expect(html).toContain('Story Progression');
+      expect(html).toContain('id="arcBeatDetail"');
     });
 
     test('should have beat detail panel', () => {
       expect(html).toContain('id="arcBeatDetail"');
     });
 
-    test('should have close arc editor buttons', () => {
+    test('should have close arc editor button', () => {
       expect(html).toContain('id="closeArcEditor"');
-      expect(html).toContain('id="closeArcEditorFooter"');
     });
   });
 

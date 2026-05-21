@@ -462,42 +462,53 @@
         <!-- Character Arc Editor Modal -->
         <div id="arcEditorModal" class="modal" style="display: none;">
             <div class="modal-content arc-editor">
-                <!-- Header -->
                 <div class="arc-editor-header">
                     <div class="arc-character-info">
                         <img id="arcCharacterThumbnail" class="arc-character-thumbnail" src="" alt="" style="display: none;">
-                        <h2 id="arcCharacterName">Character Arc</h2>
+                        <div>
+                            <p class="arc-editor-kicker">Character Arc</p>
+                            <h2 id="arcCharacterName">Character Arc</h2>
+                        </div>
                     </div>
-                    <button class="modal-close" id="closeArcEditor">&times;</button>
+                    <button class="modal-close" id="closeArcEditor" aria-label="Close character arc editor">&times;</button>
                 </div>
 
-                <!-- Template Selection -->
                 <div class="arc-template-section">
-                    <h3>Arc Template</h3>
+                    <div class="arc-section-heading">
+                        <h3>Arc Template</h3>
+                        <p>Choose a starting structure, then tune the beats to fit this character.</p>
+                    </div>
                     <div class="arc-template-buttons" id="arcTemplateButtons">
                         <!-- Template buttons will be inserted here -->
                     </div>
+                    <div class="arc-template-confirm" id="arcTemplateConfirm" hidden>
+                        <span id="arcTemplateConfirmText"></span>
+                        <div>
+                            <button type="button" class="btn-secondary" id="cancelTemplateChange">Keep Current</button>
+                            <button type="button" class="btn-primary" id="applyTemplateChange">Replace Beats</button>
+                        </div>
+                    </div>
                 </div>
 
-                <!-- View Toggle -->
-                <div class="arc-view-toggle">
-                    <button class="arc-view-btn active" data-view="list">List View</button>
-                    <button class="arc-view-btn" data-view="graph">Graph View</button>
-                </div>
-
-                <!-- Main Content Area -->
                 <div class="arc-content">
-                    <!-- List View -->
-                    <div id="arcListView" class="arc-view active">
-                        <div class="arc-beats-container">
+                    <div class="arc-workspace" id="arcListView">
+                        <section class="arc-timeline-panel" aria-label="Character arc timeline">
+                            <div class="arc-panel-header">
+                                <div>
+                                    <h3>Emotional Timeline</h3>
+                                    <p id="arcTimelineSummary">No beats yet</p>
+                                </div>
+                                <button class="btn-primary" id="addArcBeat">+ Add Beat</button>
+                            </div>
+                            <div class="arc-curve-card">
+                                <div id="arcTimelineCurve" class="arc-timeline-curve"></div>
+                            </div>
                             <div class="arc-beats-list" id="arcBeatsList">
                                 <!-- Beats will be inserted here -->
                             </div>
-                            <button class="btn-primary" id="addArcBeat">+ Add Beat</button>
-                        </div>
+                        </section>
 
-                        <!-- Beat Detail Panel -->
-                        <div class="arc-beat-detail" id="arcBeatDetail">
+                        <aside class="arc-beat-detail" id="arcBeatDetail">
                             <div class="beat-detail-empty">
                                 <p>Select a beat to edit its details</p>
                             </div>
@@ -514,10 +525,11 @@
                                 <input type="text" id="beatEmotionalState" placeholder="e.g., desperate, hopeful, conflicted">
 
                                 <label for="beatYPosition">Emotional Trajectory (0-100):</label>
-                                <input type="range" id="beatYPosition" min="0" max="100" value="50">
-                                <span id="beatYPositionValue">50</span>
+                                <div class="arc-range-row">
+                                    <input type="range" id="beatYPosition" min="0" max="100" value="50">
+                                    <span id="beatYPositionValue">50</span>
+                                </div>
 
-                                <!-- Linked Content -->
                                 <h4>Linked Scenes</h4>
                                 <div class="beat-linked-scenes" id="beatLinkedScenes">
                                     <!-- Scene checkboxes will be inserted here -->
@@ -530,25 +542,11 @@
 
                                 <button class="btn-danger" id="deleteBeat">Delete Beat</button>
                             </div>
-                        </div>
+                        </aside>
                     </div>
 
-                    <!-- Graph View (Phase 3) -->
-                    <div id="arcGraphView" class="arc-view">
-                        <div class="arc-graph-wrapper">
-                            <div class="arc-graph-labels">
-                                <div class="arc-y-axis-label">Emotional State</div>
-                                <div class="arc-x-axis-label">Story Progression →</div>
-                            </div>
-                            <div id="arcGraphNetwork" class="arc-graph-network"></div>
-                        </div>
-                    </div>
                 </div>
 
-                <!-- Footer Actions -->
-                <div class="arc-editor-footer">
-                    <button class="btn-secondary" id="closeArcEditorFooter">Close</button>
-                </div>
             </div>
         </div>
 
@@ -563,7 +561,6 @@
         </main>
 
         <script type="module" src="RelationshipGraph.js"></script>
-        <script type="module" src="CharacterArcGraph.js"></script>
         <script type="module" src="DataManager.js"></script>
         <script src="Sortable.min.js"></script>
         <script type="module" src="popup.js"></script>
